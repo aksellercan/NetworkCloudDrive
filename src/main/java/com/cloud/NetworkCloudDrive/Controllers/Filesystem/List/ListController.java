@@ -42,6 +42,7 @@ public class ListController {
 
     //TODO add pagination max like = 6 items per type (files/folders)
     @GetMapping(version = "1.0")
+    @Deprecated
     public @ResponseBody ResponseEntity<?> listFiles(@RequestParam long folderid) {
         try {
             List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderid)));
@@ -59,6 +60,7 @@ public class ListController {
     }
 
     @GetMapping(params = {"folderid", "sortby"}, version = "1.0")
+    @Deprecated
     public @ResponseBody ResponseEntity<?> listFiles(@RequestParam long folderid, @RequestParam SortListEnum sortby) {
         try {
             List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderid)));
@@ -93,6 +95,7 @@ public class ListController {
     }
 
     @GetMapping(params = {"folderid", "filterby"}, version = "1.0")
+    @Deprecated
     public @ResponseBody ResponseEntity<?> listFiles(@RequestParam long folderid, @RequestParam FilterListEnum filterby) {
         try {
             List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderid)));
@@ -115,6 +118,7 @@ public class ListController {
     //TODO I feel like parameters are getting too long, might be a good idea to switch to json to get filter requests
 
     @GetMapping(params = {"folderid", "filterby", "filter"}, version = "1.0")
+    @Deprecated
     public @ResponseBody ResponseEntity<?> listFiles(@RequestParam long folderid, @RequestParam FilterListEnum filterby, @RequestParam String filter) {
         try {
             List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderid)));

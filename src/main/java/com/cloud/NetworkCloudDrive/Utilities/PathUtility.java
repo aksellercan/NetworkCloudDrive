@@ -127,8 +127,10 @@ public class PathUtility {
      * @throws SQLException        if Folder ID can't be found or invalid
      * @throws FileSystemException if path is invalid
      */
-    public String returnParentFolderPathFromFolderID(long folderId) throws SQLException, FileSystemException {
-        String[] splitPath = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId()).getPath().split("/");
+    public String returnParentFolderPathFromFolderID(long folderId) throws FileSystemException {
+        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+        if (folderMetadata == null) throw new FileSystemException("Folder id not found");
+        String[] splitPath = folderMetadata.getPath().split("/");
         long parentFolderId = Long.parseLong(splitPath[splitPath.length - 2]);
         return getFolderPath(parentFolderId);
     }
@@ -142,9 +144,11 @@ public class PathUtility {
      * @throws FileSystemException if path can't be resolved
      */
     public String getFolderPath(long folderId) throws FileSystemException {
+        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+        if (folderMetadata == null) throw new FileSystemException("Folder id not found");
         return folderId > 0
                 ?
-                resolvePathFromIdString(sqLiteDAO.queryFolderMetadata(folderId, userSession.getId()).getPath())
+                resolvePathFromIdString(folderMetadata.getPath())
                 :
                 encodingUtility.encodeBase32UserFolderName(userSession.getId(), userSession.getName(), userSession.getMail());
     }

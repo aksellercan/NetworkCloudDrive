@@ -92,6 +92,7 @@ public class FileController {
             String safeQuotes = decodedFileName.replace("\"", "\\\"");
             String serialize = URLEncoder.encode(safeQuotes, StandardCharsets.UTF_8);
             Resource file = fileRepository.getFile(metadata, actualPath).get();
+            String serialize = URLEncoder.encode(metadata.getName(), StandardCharsets.UTF_8);
             return ResponseEntity.ok().
                     header(HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"" + serialize + "\" ")

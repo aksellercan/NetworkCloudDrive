@@ -98,12 +98,18 @@ public class FileSystemService implements FileSystemRepository {
             String actualFileName = arrayString[1];
             if (Files.isRegularFile(file)) {
                 FileMetadata foundFile = sqLiteDAO.queryFileMetadata(actualFileId, userSession.getId());
+                if (foundFile == null) {
+                    continue;
+                }
                 FileListItemDTO fileListItemDTO = new FileListItemDTO(foundFile);
                 fileListItemDTO.setName(actualFileName);
                 fileList.add(fileListItemDTO);
                 continue;
             }
             FolderMetadata foundFolderMetadata = sqLiteDAO.queryFolderMetadata(actualFileId, userSession.getId());
+            if (foundFolderMetadata == null) {
+                continue;
+            }
             FolderListItemDTO folderListItemDTO = new FolderListItemDTO(foundFolderMetadata);
             folderListItemDTO.setName(actualFileName);
             folderList.add(folderListItemDTO);
@@ -218,7 +224,7 @@ public class FileSystemService implements FileSystemRepository {
         //find folder
         Path checkExists = fileUtility.returnPathIfItExists(pathToRemove);
         //remove Folder
-        deleteFsTree(checkExists, folder.getPath());
+        deleteFsTree(checkExists);
         if (!emptyLeftoversDirectory(checkExists)) {
             if (!Files.deleteIfExists(checkExists)) {
                 throw new IOException("Failed to remove parent folder");
@@ -246,7 +252,7 @@ public class FileSystemService implements FileSystemRepository {
             return false;
         }
 
-        logger.info("Items inside folder {}", subFiles.size());
+        logger.debug("Items inside folder {}", subFiles.size());
         for (Path subFile : subFiles) {
             if (fileUtility.isIgnoredSystemFile(subFile.getFileName().toString())) {
                 return !Files.deleteIfExists(subFile);
@@ -258,7 +264,7 @@ public class FileSystemService implements FileSystemRepository {
     //TODO instead of generating Id paths use startsWith from DAO and filter files by found folders id's then delete them both from db and system
     //TODO needs a reworked function
     @Deprecated
-    private void deleteFsTree(Path dir, String startingIdPath) throws IOException {
+    private void deleteFsTree(Path dir) throws IOException {
         logger.info("Start File Tree deletion operation");
         long errorCount = 0;
         List<Path> fileTreeStream = fileUtility.walkFsTree(dir, true);

@@ -48,10 +48,10 @@ public class RecentsController {
         try {
             Pageable pageable = PageRequest.of(page, size);
             return ResponseEntity.ok()
-                    .contentType(MediaType.APPLICATION_JSON)
                     .body(new JSONObjectArrayResponse(new Object[]{
                             fileSystemRepository.collectAllRecentsPageable(pageable),
-                            pageable}, "Paged files and folders list"
+                            pageable},
+                            "Paged files and folders list"
                     ));
         } catch (Exception e) {
             logger.error("Failed to list recents, page: {}, size: {}, reason: {}!", page, size, e.getMessage());
