@@ -71,12 +71,10 @@ public class FileActionsController {
         try {
             FileMetadata fileToRemove = informationRepository.getFileMetadata(fileid);
             String oldPath = fileSystemRepository.removeFile(fileToRemove);
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).
-                    body(new JSONResponse("file with Id %d at path %s was successfully removed", fileToRemove.getId(), oldPath));
+            return ResponseEntity.ok().body(new JSONResponse("file with Id %d at path %s was successfully removed", fileToRemove.getId(), oldPath));
         } catch (Exception e) {
             logger.error("Cannot remove file #{}: {}", fileid, e.getMessage());
-            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).
-                    body(new JSONErrorResponse(e, "Failed remove file with Id %d: %s", fileid, e.getMessage()));
+            return ResponseEntity.badRequest().body(new JSONErrorResponse(e, "Failed remove file with Id %d: %s", fileid, e.getMessage()));
         }
     }
 }

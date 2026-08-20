@@ -12,6 +12,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Path;
 import java.util.List;
@@ -28,6 +29,15 @@ public class ListController {
         this.fileUtility = fileUtility;
         this.pathUtility = pathUtility;
         this.fileSystemRepository = fileSystemRepository;
+    }
+
+    @GetMapping(version = "2.0")
+    public @ResponseBody ResponseEntity<?> listFilesInclusive(
+            @RequestParam long folder_id,
+            @RequestParam(required = false) SortListEnum sort,
+            @RequestParam(required = false) FilterListEnum filter,
+            @RequestParam(required = false) String filterQuery) throws IOException {
+        return ResponseEntity.ok().body(fileSystemRepository.listFilesV2(folder_id, sort, filter, filterQuery));
     }
 
     //TODO add pagination max like = 6 items per type (files/folders)

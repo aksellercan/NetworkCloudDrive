@@ -113,7 +113,7 @@ public class FileController {
         try {
             FolderMetadata folderMetadata = fileRepository.createFolder(folderDTO.getName(), folderDTO.getFolder_id());
             folderMetadata.setPath(pathUtility.resolvePathFromIdString(folderMetadata.getPath()));
-            return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(folderMetadata);
+            return ResponseEntity.ok().body(folderMetadata);
         } catch (FileAlreadyExistsException fae) {
             logger.error("Folder with name {} already exists. {}", folderDTO.getName(), fae.getMessage());
             return ResponseEntity.badRequest().body(new JSONErrorResponse(fae));

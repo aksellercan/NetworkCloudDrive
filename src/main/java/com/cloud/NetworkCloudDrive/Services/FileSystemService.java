@@ -58,7 +58,32 @@ public class FileSystemService implements FileSystemRepository {
         this.sortAndFilterUtility = sortAndFilterUtility;
     }
 
-    private List<List<?>> checkAndCollectFilesAndFolders(List<Path> filePaths) throws SQLException {
+    @Override
+    public Map<String, List<?>> listFilesV2(long folderId, SortListEnum sort, FilterListEnum filter, String filterQuery) throws IOException {
+        List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderId)));
+        List<List<?>> results = checkAndCollectFilesAndFolders(fileList);
+        if (sort != null) {
+            return sortAndFilterUtility.sortFileList(
+                    sort,
+                    (Stream<FileListItemDTO>) results.get(0).stream(),
+                    (Stream<FolderListItemDTO>) results.get(1).stream()
+            );
+        }
+        if (filter != null) {
+            return sortAndFilterUtility.filterFileList(
+                    filter,
+                    (Stream<FileListItemDTO>) results.get(0).stream(),
+                    (Stream<FolderListItemDTO>) results.get(1).stream(),
+                    Objects.requireNonNullElse(filterQuery, "")
+            );
+        }
+        return Map.of(
+                "files", results.get(0),
+                "folders", results.get(1)
+        );
+    }
+
+    private List<List<?>> checkAndCollectFilesAndFolders(List<Path> filePaths) {
         List<FileListItemDTO> fileList = new LinkedList<>();
         List<FolderListItemDTO> folderList = new LinkedList<>();
         for (Path file : filePaths) {
