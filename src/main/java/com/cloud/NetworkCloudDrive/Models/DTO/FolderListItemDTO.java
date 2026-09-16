@@ -8,6 +8,7 @@ public class FolderListItemDTO {
     private long id;
     private String name;
     private String path;
+    private boolean marked;
     private Instant createdAt;
     private Instant lastAccessedAt;
 
@@ -20,6 +21,7 @@ public class FolderListItemDTO {
         this.path = folderMetadata.getPath();
         this.createdAt = folderMetadata.getCreatedAt();
         this.lastAccessedAt = folderMetadata.getLastUpdated();
+        this.marked = folderMetadata.isMarked();
     }
 
     public Instant getLastAccessedAt() {
@@ -60,5 +62,13 @@ public class FolderListItemDTO {
 
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isMarked() {
+        return marked;
+    }
+
+    public void setMarked(boolean marked) {
+        this.marked = marked;
     }
 }

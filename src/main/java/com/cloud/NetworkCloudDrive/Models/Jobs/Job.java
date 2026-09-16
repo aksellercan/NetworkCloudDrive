@@ -7,6 +7,7 @@ import com.cloud.NetworkCloudDrive.Models.Enum.System.JobType;
 import java.time.Instant;
 import java.util.UUID;
 
+// cache based database to store jobs that have run and ability to see their status and returns
 public class Job {
     private final UUID id = UUID.randomUUID();
     private UserDTO userDTO;

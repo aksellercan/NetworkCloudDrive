@@ -12,6 +12,7 @@ public class FileListItemDTO {
     private Instant createdAt;
     private Instant lastAccessedAt;
     private boolean hasThumbnail;
+    private boolean marked;
 
     public FileListItemDTO() {
     }
@@ -24,6 +25,7 @@ public class FileListItemDTO {
         this.createdAt = fileMetadata.getCreatedAt();
         this.hasThumbnail = fileMetadata.isHasThumbnail();
         this.lastAccessedAt = fileMetadata.getLastUpdated();
+        this.marked = fileMetadata.isMarked();
     }
 
 
@@ -81,5 +83,13 @@ public class FileListItemDTO {
 
     public void setHasThumbnail(boolean hasThumbnail) {
         this.hasThumbnail = hasThumbnail;
+    }
+
+    public boolean isMarked() {
+        return marked;
+    }
+
+    public void setMarked(boolean marked) {
+        this.marked = marked;
     }
 }

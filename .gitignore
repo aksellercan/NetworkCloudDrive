@@ -9,6 +9,7 @@ target/
 ### Storage/User Space ###
 root/
 root/*
+old.root/
 
 ### JavaDocs ###
 JavaDocs/
@@ -24,6 +25,8 @@ logs_test/*
 
 ### DB ###
 filedatabase.db
+old.filedatabase.db
+old.**.filedatabase.db
 
 ### Maven ###
 mvnw

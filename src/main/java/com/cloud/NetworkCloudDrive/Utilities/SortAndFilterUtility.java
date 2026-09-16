@@ -91,6 +91,10 @@ public class SortAndFilterUtility {
                 fileListItemDTOPredicate = (f -> f.getName().contains(filterCase));
                 folderListItemDTOPredicate = (fl -> fl.getName().contains(filterCase));
                 break;
+            case MARKED:
+                fileListItemDTOPredicate = (FileListItemDTO::isMarked);
+                folderListItemDTOPredicate = (FolderListItemDTO::isMarked);
+                break;
             default:
                 return Map.of(
                         "files", fileList.toList(),

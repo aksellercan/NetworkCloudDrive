@@ -1,5 +1,6 @@
 package com.cloud.NetworkCloudDrive.Models.Enum;
 
+//TODO ability to mix options
 public enum ScanOptions {
     GO_INTO_FOLDERS,
     DONT_GO_INTO_FOLDERS,

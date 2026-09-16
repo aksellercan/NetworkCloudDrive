@@ -1,6 +1,10 @@
 package com.cloud.NetworkCloudDrive.Models;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
@@ -14,21 +18,19 @@ public class FolderMetadata {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name")
     private String name;
 
-    @Column(name = "path")
     private String path;
 
-    @Column(name = "userid")
     private Long userid;
 
-    @Column(name = "createdAt")
     @CreationTimestamp
     private Instant createdAt;
 
-    @Column(name = "lastUpdated")
     private Instant lastUpdated;
+
+    @ColumnDefault("false")
+    private boolean marked = false;
 
     public FolderMetadata(String name, String path) {
         this.name = name;
@@ -45,6 +47,7 @@ public class FolderMetadata {
         this.userid = folderMetadata.userid;
         this.createdAt = folderMetadata.createdAt;
         this.lastUpdated = folderMetadata.lastUpdated;
+        this.marked = folderMetadata.marked;
     }
 
     public Long getUserid() {
@@ -99,6 +102,14 @@ public class FolderMetadata {
         this.name = name;
     }
 
+    public boolean isMarked() {
+        return marked;
+    }
+
+    public void setMarked(boolean marked) {
+        this.marked = marked;
+    }
+
     @Override
     public String toString() {
         return "FolderMetadata{" +
@@ -108,6 +119,7 @@ public class FolderMetadata {
                 ", userid=" + userid +
                 ", createdAt=" + createdAt +
                 ", lastUpdated=" + lastUpdated +
+                ", marked=" + marked +
                 '}';
     }
 }

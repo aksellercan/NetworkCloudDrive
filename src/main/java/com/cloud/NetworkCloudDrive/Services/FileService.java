@@ -25,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
-import java.time.Instant;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -172,5 +172,21 @@ public class FileService implements FileRepository {
             throw new IOException(String.format("Cannot create directory, with name %s.", folderName));
         // save and return metadata
         return sqLiteDAO.saveFolder(createdFolder);
+    }
+
+    @Override
+    public void markFile(boolean mark, long fileId) throws SQLException {
+        FileMetadata fileMetadata = sqLiteDAO.queryFileMetadata(fileId, userSession.getId());
+        fileMetadata.setMarked(mark);
+        FileMetadata result = sqLiteDAO.saveFile(fileMetadata);
+        logger.info("{}", result.toString());
+    }
+
+    @Override
+    public void markFolder(boolean mark, long folderId) throws SQLException {
+        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+        folderMetadata.setMarked(mark);
+        FolderMetadata result = sqLiteDAO.saveFolder(folderMetadata);
+        logger.info("{}", result.toString());
     }
 }
