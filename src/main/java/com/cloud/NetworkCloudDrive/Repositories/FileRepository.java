@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -21,4 +22,8 @@ public interface FileRepository {
     CompletableFuture<Resource> getFile(FileMetadata file, String path) throws Exception;
 
     FolderMetadata createFolder(String folderName, long folderId) throws Exception;
+
+    void markFile(boolean mark, long fileId) throws SQLException;
+
+    void markFolder(boolean mark, long folder) throws SQLException;
 }

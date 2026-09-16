@@ -5,6 +5,7 @@ import com.cloud.NetworkCloudDrive.Models.Enum.UploadOptions;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
 import com.cloud.NetworkCloudDrive.Models.Response.JSONErrorResponse;
+import com.cloud.NetworkCloudDrive.Models.Response.JSONResponse;
 import com.cloud.NetworkCloudDrive.Repositories.FileRepository;
 import com.cloud.NetworkCloudDrive.Repositories.InformationRepository;
 import com.cloud.NetworkCloudDrive.Security.EncodingUtility;
@@ -122,6 +123,28 @@ public class FileController {
         } catch (Exception e) {
             logger.error("Error creating folder with name: {}. {}", folderDTO.getName(), e.getMessage());
             return ResponseEntity.internalServerError().body(new JSONErrorResponse(e, "IO Error"));
+        }
+    }
+
+    @PatchMapping(value = "mark", params = {"m", "fid"})
+    public ResponseEntity<?> markFile(@RequestParam("m") boolean mark, @RequestParam("fid") long fileId) {
+        try {
+            fileRepository.markFile(mark, fileId);
+            return ResponseEntity.ok().body(new JSONResponse("Marked file as %s successfully", mark));
+        } catch (Exception e) {
+            logger.error("Error marking file. {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(new JSONErrorResponse(e, "Internal Error"));
+        }
+    }
+
+    @PatchMapping(value = "mark", params = {"m", "flid"})
+    public ResponseEntity<?> markFolder(@RequestParam("m") boolean mark, @RequestParam("flid") long folderId) {
+        try {
+            fileRepository.markFolder(mark, folderId);
+            return ResponseEntity.ok().body(new JSONResponse("Marked folder as %s successfully", mark));
+        } catch (Exception e) {
+            logger.error("Error marking folder. {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(new JSONErrorResponse(e, "Internal Error"));
         }
     }
 }

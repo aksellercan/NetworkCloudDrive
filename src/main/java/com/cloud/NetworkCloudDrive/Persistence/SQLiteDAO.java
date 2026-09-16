@@ -131,6 +131,11 @@ public class SQLiteDAO {
     }
 
     @Transactional
+    public FileMetadata saveFileAndFlush(FileMetadata file) {
+        return sqLiteFileRepository.saveAndFlush(file);
+    }
+
+    @Transactional
     public UserEntity saveUser(UserEntity userEntity) {
         return sqLiteUserEntityRepository.save(userEntity);
     }

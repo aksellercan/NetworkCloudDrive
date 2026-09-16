@@ -13,29 +13,32 @@ public class FileMetadata {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name")
+    @Column(name = "file_name")
     private String name;
 
-    @Column(name = "folderId")
+    @Column(name = "folder_Id")
     private Long folderId;
 
-    @Column(name = "userid")
+    @Column(name = "user_id")
     private Long userid;
 
-    @Column(name = "mimiType")
+    @Column(name = "mimi_type")
     private String mimiType;
 
     private Long size;
 
-    @Column(name = "createdAt")
+    @Column(name = "created_At")
     @CreationTimestamp
     private Instant createdAt;
 
-    @Column(name = "hasThumbnail")
+    @Column(name = "has_thumbnail")
     private boolean hasThumbnail = false;
 
-    @Column(name = "lastUpdated")
+    @Column(name = "last_updated")
     private Instant lastUpdated;
+
+    @Column(name = "marked")
+    private boolean marked = false;
 
     public FileMetadata(String name, Long folderId, Long userid, String mimiType, Long size) {
         this.name = name;
@@ -58,6 +61,7 @@ public class FileMetadata {
         this.createdAt = fileMetadata.createdAt;
         this.hasThumbnail = fileMetadata.hasThumbnail;
         this.lastUpdated = fileMetadata.lastUpdated;
+        this.marked = fileMetadata.marked;
     }
 
     public Long getUserid() {
@@ -136,6 +140,14 @@ public class FileMetadata {
         this.hasThumbnail = hasThumbnail;
     }
 
+    public boolean isMarked() {
+        return marked;
+    }
+
+    public void setMarked(boolean marked) {
+        this.marked = marked;
+    }
+
     @Override
     public String toString() {
         return "FileMetadata{" +
@@ -148,6 +160,7 @@ public class FileMetadata {
                 ", createdAt=" + createdAt +
                 ", hasThumbnail=" + hasThumbnail +
                 ", lastUpdated=" + lastUpdated +
+                ", marked=" + marked +
                 '}';
     }
 }

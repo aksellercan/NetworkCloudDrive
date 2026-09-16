@@ -30,6 +30,9 @@ public class FolderMetadata {
     @Column(name = "lastUpdated")
     private Instant lastUpdated;
 
+    @Column(name = "marked")
+    private boolean marked = false;
+
     public FolderMetadata(String name, String path) {
         this.name = name;
         this.path = path;
@@ -45,6 +48,7 @@ public class FolderMetadata {
         this.userid = folderMetadata.userid;
         this.createdAt = folderMetadata.createdAt;
         this.lastUpdated = folderMetadata.lastUpdated;
+        this.marked = folderMetadata.marked;
     }
 
     public Long getUserid() {
@@ -99,6 +103,14 @@ public class FolderMetadata {
         this.name = name;
     }
 
+    public boolean isMarked() {
+        return marked;
+    }
+
+    public void setMarked(boolean marked) {
+        this.marked = marked;
+    }
+
     @Override
     public String toString() {
         return "FolderMetadata{" +
@@ -108,6 +120,7 @@ public class FolderMetadata {
                 ", userid=" + userid +
                 ", createdAt=" + createdAt +
                 ", lastUpdated=" + lastUpdated +
+                ", marked=" + marked +
                 '}';
     }
 }
