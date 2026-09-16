@@ -1,6 +1,10 @@
 package com.cloud.NetworkCloudDrive.Models;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
@@ -13,31 +17,25 @@ public class FileMetadata {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "file_name")
     private String name;
 
-    @Column(name = "folder_Id")
     private Long folderId;
 
-    @Column(name = "user_id")
     private Long userid;
 
-    @Column(name = "mimi_type")
     private String mimiType;
 
     private Long size;
 
-    @Column(name = "created_At")
     @CreationTimestamp
     private Instant createdAt;
 
-    @Column(name = "has_thumbnail")
+    @ColumnDefault("false")
     private boolean hasThumbnail = false;
 
-    @Column(name = "last_updated")
     private Instant lastUpdated;
 
-    @Column(name = "marked")
+    @ColumnDefault("false")
     private boolean marked = false;
 
     public FileMetadata(String name, Long folderId, Long userid, String mimiType, Long size) {

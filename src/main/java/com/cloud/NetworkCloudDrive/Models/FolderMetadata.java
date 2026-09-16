@@ -1,6 +1,10 @@
 package com.cloud.NetworkCloudDrive.Models;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
@@ -14,23 +18,18 @@ public class FolderMetadata {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name")
     private String name;
 
-    @Column(name = "path")
     private String path;
 
-    @Column(name = "userid")
     private Long userid;
 
-    @Column(name = "createdAt")
     @CreationTimestamp
     private Instant createdAt;
 
-    @Column(name = "lastUpdated")
     private Instant lastUpdated;
 
-    @Column(name = "marked")
+    @ColumnDefault("false")
     private boolean marked = false;
 
     public FolderMetadata(String name, String path) {
