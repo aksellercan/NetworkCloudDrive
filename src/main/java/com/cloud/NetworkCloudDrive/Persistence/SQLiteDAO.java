@@ -475,4 +475,32 @@ public class SQLiteDAO {
         sqLiteFileRepository.deleteAllByUserid(userId);
         sqLiteFolderRepository.deleteAllByUserid(userId);
     }
+
+    @Transactional
+    public List<FileListItemDTO> listAllMarkedFiles(long userId, boolean marked) {
+        List<FileMetadata> fileMetadataList = sqLiteFileRepository.findAllByUseridAndMarked(userId, marked);
+        List<FileListItemDTO> fileListItemDTOS = new ArrayList<>();
+        for (FileMetadata fileMetadata : fileMetadataList) {
+            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
+            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
+                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
+            }
+            fileListItemDTOS.add(fileListItemDTO);
+        }
+        return fileListItemDTOS;
+    }
+
+    @Transactional
+    public List<FolderListItemDTO> listAllMarkedFolders(long userId, boolean marked) {
+        List<FolderMetadata> folderMetadataList = sqLiteFolderRepository.findAllByUseridAndMarked(userId, marked);
+        List<FolderListItemDTO> folderListItemDTOS = new ArrayList<>();
+        for (FolderMetadata folderMetadata : folderMetadataList) {
+            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
+            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
+                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
+            }
+            folderListItemDTOS.add(folderListItemDTO);
+        }
+        return folderListItemDTOS;
+    }
 }

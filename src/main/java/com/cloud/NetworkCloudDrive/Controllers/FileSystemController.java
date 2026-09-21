@@ -250,6 +250,21 @@ public class FileSystemController {
         }
     }
 
+    @GetMapping(value = "marked", version = "1.0")
+    public @ResponseBody ResponseEntity<?> marked() {
+        try {
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new JSONObjectArrayResponse(
+                            new Object[]{
+                                    fileSystemRepository.collectAllMarked(),
+                            }, "Marked Files and Folders"));
+        } catch (Exception e) {
+            logger.error("error displaying marked files and folders", e);
+            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(new JSONErrorResponse(e, "Failed to display marked Files and Folders"));
+        }
+    }
+
     @GetMapping(value = "recents", version = "1.0")
     public @ResponseBody ResponseEntity<?> listRecents() {
         try {

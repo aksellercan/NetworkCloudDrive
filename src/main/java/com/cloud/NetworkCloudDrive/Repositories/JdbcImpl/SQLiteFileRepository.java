@@ -21,4 +21,6 @@ public interface SQLiteFileRepository extends JpaRepository<FileMetadata, Long> 
     void deleteAllByUserid(Long userid);
 
     Page<FileMetadata> findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(long userId, Pageable pageable);
+
+    List<FileMetadata> findAllByUseridAndMarked(Long userid, boolean marked);
 }

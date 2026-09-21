@@ -50,6 +50,8 @@ public interface FileSystemRepository {
 
     Map<String, List<?>> collectAllRecents();
 
+    Map<String, List<?>> collectAllMarked();
+
     Map<String, List<?>> collectAllRecentsPageable(Pageable pageable);
 
     List<FileListItemDTO> getRecentFilesPageable(Pageable pageable);
