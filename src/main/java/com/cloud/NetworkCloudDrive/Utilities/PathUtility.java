@@ -144,11 +144,11 @@ public class PathUtility {
      * @throws FileSystemException if path can't be resolved
      */
     public String getFolderPath(long folderId) throws FileSystemException {
-        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
-        if (folderMetadata == null) throw new FileSystemException("Folder id not found");
+//        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+//        if (folderMetadata == null) throw new FileSystemException("Folder id not found");
         return folderId > 0
                 ?
-                resolvePathFromIdString(folderMetadata.getPath())
+                resolvePathFromIdString(sqLiteDAO.queryFolderMetadata(folderId, userSession.getId()).getPath())
                 :
                 encodingUtility.encodeBase32UserFolderName(userSession.getId(), userSession.getName(), userSession.getMail());
     }

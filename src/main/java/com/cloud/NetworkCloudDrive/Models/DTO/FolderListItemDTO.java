@@ -1,51 +1,21 @@
 package com.cloud.NetworkCloudDrive.Models.DTO;
 
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
+import com.cloud.NetworkCloudDrive.Models.Generics.ListItemSuperClass;
 
-import java.time.Instant;
-
-public class FolderListItemDTO {
-    private long id;
-    private String name;
+public class FolderListItemDTO extends ListItemSuperClass {
     private String path;
-    private boolean marked;
-    private Instant createdAt;
-    private Instant lastAccessedAt;
 
     public FolderListItemDTO() {
     }
 
     public FolderListItemDTO(FolderMetadata folderMetadata) {
-        this.id = folderMetadata.getId();
-        this.name = folderMetadata.getName();
+        setId(folderMetadata.getId());
+        setName(folderMetadata.getName());
         this.path = folderMetadata.getPath();
-        this.createdAt = folderMetadata.getCreatedAt();
-        this.lastAccessedAt = folderMetadata.getLastUpdated();
-        this.marked = folderMetadata.isMarked();
-    }
-
-    public Instant getLastAccessedAt() {
-        return lastAccessedAt;
-    }
-
-    public void setLastAccessedAt(Instant lastAccessedAt) {
-        this.lastAccessedAt = lastAccessedAt;
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+        setCreatedAt(folderMetadata.getCreatedAt());
+        setLastAccessedAt(folderMetadata.getLastUpdated());
+        setMarked(folderMetadata.isMarked());
     }
 
     public String getPath() {
@@ -54,21 +24,5 @@ public class FolderListItemDTO {
 
     public void setPath(String path) {
         this.path = path;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public boolean isMarked() {
-        return marked;
-    }
-
-    public void setMarked(boolean marked) {
-        this.marked = marked;
     }
 }

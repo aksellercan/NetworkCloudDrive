@@ -1,47 +1,26 @@
 package com.cloud.NetworkCloudDrive.Models;
 
+import com.cloud.NetworkCloudDrive.Models.Generics.MetadataSuperClass;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.Instant;
 
 //DONE Last updated
 
 @Entity
-public class FileMetadata {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    private String name;
-
+public class FileMetadata extends MetadataSuperClass {
     private Long folderId;
-
-    private Long userid;
 
     private String mimiType;
 
     private Long size;
 
-    @CreationTimestamp
-    private Instant createdAt;
-
     @ColumnDefault("false")
     private boolean hasThumbnail = false;
 
-    private Instant lastUpdated;
-
-    @ColumnDefault("false")
-    private boolean marked = false;
-
     public FileMetadata(String name, Long folderId, Long userid, String mimiType, Long size) {
-        this.name = name;
+        setName(name);
         this.folderId = folderId;
-        this.userid = userid;
+        setUserid(userid);
         this.mimiType = mimiType;
         this.size = size;
     }
@@ -50,36 +29,16 @@ public class FileMetadata {
     }
 
     public FileMetadata(FileMetadata fileMetadata) {
-        this.id = fileMetadata.id;
-        this.name = fileMetadata.name;
+        setId(fileMetadata.getId());
+        setName(fileMetadata.getName());
         this.folderId = fileMetadata.folderId;
-        this.userid = fileMetadata.userid;
+        setUserid(fileMetadata.getUserid());
         this.mimiType = fileMetadata.mimiType;
         this.size = fileMetadata.size;
-        this.createdAt = fileMetadata.createdAt;
+        setCreatedAt(fileMetadata.getCreatedAt());
         this.hasThumbnail = fileMetadata.hasThumbnail;
-        this.lastUpdated = fileMetadata.lastUpdated;
-        this.marked = fileMetadata.marked;
-    }
-
-    public Long getUserid() {
-        return userid;
-    }
-
-    public void setUserid(Long userid) {
-        this.userid = userid;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
+        setLastUpdated(fileMetadata.getLastUpdated());
+        setMarked(fileMetadata.isMarked());
     }
 
     public Long getFolderId() {
@@ -90,28 +49,12 @@ public class FileMetadata {
         this.folderId = folderId;
     }
 
-    public Long getId() {
-        return id;
-    }
-
     public Long getSize() {
         return size;
     }
 
     public void setSize(Long size) {
         this.size = size;
-    }
-
-    public Instant getLastUpdated() {
-        return lastUpdated;
-    }
-
-    public void updateLastUpdated() {
-        this.lastUpdated = Instant.now();
-    }
-
-    public void setLastUpdated(Instant lastUpdated) {
-        this.lastUpdated = lastUpdated;
     }
 
     public String getMimiType() {
@@ -122,14 +65,6 @@ public class FileMetadata {
         this.mimiType = mimiType;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
     public boolean isHasThumbnail() {
         return hasThumbnail;
     }
@@ -138,27 +73,13 @@ public class FileMetadata {
         this.hasThumbnail = hasThumbnail;
     }
 
-    public boolean isMarked() {
-        return marked;
-    }
-
-    public void setMarked(boolean marked) {
-        this.marked = marked;
-    }
-
     @Override
     public String toString() {
         return "FileMetadata{" +
-                "id=" + id +
-                ", name='" + name + '\'' +
-                ", folderId=" + folderId +
-                ", userid=" + userid +
+                "folderId=" + folderId +
                 ", mimiType='" + mimiType + '\'' +
                 ", size=" + size +
-                ", createdAt=" + createdAt +
                 ", hasThumbnail=" + hasThumbnail +
-                ", lastUpdated=" + lastUpdated +
-                ", marked=" + marked +
                 '}';
     }
 }

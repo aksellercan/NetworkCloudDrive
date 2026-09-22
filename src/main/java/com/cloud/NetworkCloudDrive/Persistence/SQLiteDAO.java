@@ -5,6 +5,8 @@ import com.cloud.NetworkCloudDrive.Models.DTO.FileListItemDTO;
 import com.cloud.NetworkCloudDrive.Models.DTO.FolderListItemDTO;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
+import com.cloud.NetworkCloudDrive.Models.Generics.ListItemSuperClass;
+import com.cloud.NetworkCloudDrive.Models.Generics.MetadataSuperClass;
 import com.cloud.NetworkCloudDrive.Models.ThumbnailMetadata;
 import com.cloud.NetworkCloudDrive.Models.UserEntity;
 import com.cloud.NetworkCloudDrive.Properties.ThumbnailProperties;
@@ -255,30 +257,15 @@ public class SQLiteDAO {
     @Transactional
     public List<FileListItemDTO> getAllFilesBelongingToUserAsDTO(long userId) {
         List<FileMetadata> list = sqLiteFileRepository.findAllByUserid(userId);
-        List<FileListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FileMetadata fileMetadata : list) {
-            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
-            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
-                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
-            }
-            returnList.add(fileListItemDTO);
-        }
-        return returnList;
+        return decodeNamesAndReturnList(list);
     }
 
     @Transactional
     public List<FileListItemDTO> getAllFilesBelongingToUserAsDTOPageable(long userId, Pageable pageable) {
         // queries all folders where user id = x then orders by lastupdated descending
         Page<FileMetadata> list = sqLiteFileRepository.findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(userId, pageable);
-        List<FileListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FileMetadata fileMetadata : list) {
-            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
-            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
-                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
-            }
-            returnList.add(fileListItemDTO);
-        }
-        return returnList;
+//        return decodeNamesAndReturnList(list);
+        return new ArrayList<>();
     }
 
     @Transactional
@@ -289,13 +276,16 @@ public class SQLiteDAO {
     @Transactional
     public List<FolderListItemDTO> getAllFoldersBelongingToUserAsDTO(long userId) {
         List<FolderMetadata> list = sqLiteFolderRepository.findAllByUserid(userId);
-        List<FolderListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FolderMetadata folderMetadata : list) {
-            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
-            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
-                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
+        return decodeNamesAndReturnList(list);
+    }
+
+    public <T extends ListItemSuperClass, P extends MetadataSuperClass> List<T> decodeNamesAndReturnList(List<P> inputList) {
+        List<T> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
+        for (P listItemDTO : inputList) {
+            if (encodingUtility.isBase32Decodable(listItemDTO.getName())) {
+                listItemDTO.setName(encodingUtility.decodedBase32SplitArray(listItemDTO.getName())[1]);
             }
-            returnList.add(folderListItemDTO);
+//            returnList.add(listItemDTO);
         }
         return returnList;
     }
@@ -303,15 +293,8 @@ public class SQLiteDAO {
     @Transactional
     public List<FolderListItemDTO> getAllFoldersBelongingToUserAsDTOPageable(long userId, Pageable pageable) {
         Page<FolderMetadata> list = sqLiteFolderRepository.findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(userId, pageable);
-        List<FolderListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FolderMetadata folderMetadata : list) {
-            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
-            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
-                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
-            }
-            returnList.add(folderListItemDTO);
-        }
-        return returnList;
+//        return decodeNamesAndReturnList(list);
+        return new ArrayList<>();
     }
 
     public ThumbnailMetadata queryThumbnailMetadataUsingFileId(long fileId, long userId) {
@@ -447,28 +430,12 @@ public class SQLiteDAO {
     @Transactional
     public List<FileListItemDTO> listAllMarkedFiles(long userId, boolean marked) {
         List<FileMetadata> fileMetadataList = sqLiteFileRepository.findAllByUseridAndMarked(userId, marked);
-        List<FileListItemDTO> fileListItemDTOS = new ArrayList<>();
-        for (FileMetadata fileMetadata : fileMetadataList) {
-            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
-            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
-                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
-            }
-            fileListItemDTOS.add(fileListItemDTO);
-        }
-        return fileListItemDTOS;
+        return decodeNamesAndReturnList(fileMetadataList);
     }
 
     @Transactional
     public List<FolderListItemDTO> listAllMarkedFolders(long userId, boolean marked) {
         List<FolderMetadata> folderMetadataList = sqLiteFolderRepository.findAllByUseridAndMarked(userId, marked);
-        List<FolderListItemDTO> folderListItemDTOS = new ArrayList<>();
-        for (FolderMetadata folderMetadata : folderMetadataList) {
-            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
-            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
-                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
-            }
-            folderListItemDTOS.add(folderListItemDTO);
-        }
-        return folderListItemDTOS;
+        return decodeNamesAndReturnList(folderMetadataList);
     }
 }
