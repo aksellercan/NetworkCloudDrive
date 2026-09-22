@@ -3,11 +3,14 @@ package com.cloud.NetworkCloudDrive.Controllers.Filesystem.Actions;
 import com.cloud.NetworkCloudDrive.Models.DTO.UpdateFileNameDTO;
 import com.cloud.NetworkCloudDrive.Models.DTO.UpdateFilePathDTO;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
+import com.cloud.NetworkCloudDrive.Models.Response.JSONErrorResponse;
 import com.cloud.NetworkCloudDrive.Models.Response.JSONResponse;
 import com.cloud.NetworkCloudDrive.Repositories.FileSystemRepository;
 import com.cloud.NetworkCloudDrive.Repositories.InformationRepository;
 import com.cloud.NetworkCloudDrive.Sessions.UserSession;
 import com.cloud.NetworkCloudDrive.Utilities.PathUtility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping(value = "filesystem/actions/file")
 public class FileActionsController {
+    private final Logger logger = LoggerFactory.getLogger(FileActionsController.class);
     private final InformationRepository informationRepository;
     private final FileSystemRepository fileSystemRepository;
     private final PathUtility pathUtility;

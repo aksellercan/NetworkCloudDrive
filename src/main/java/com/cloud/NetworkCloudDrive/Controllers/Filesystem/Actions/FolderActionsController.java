@@ -9,6 +9,8 @@ import com.cloud.NetworkCloudDrive.Repositories.FileSystemRepository;
 import com.cloud.NetworkCloudDrive.Repositories.InformationRepository;
 import com.cloud.NetworkCloudDrive.Security.EncodingUtility;
 import com.cloud.NetworkCloudDrive.Utilities.PathUtility;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,7 @@ import java.util.Map;
 @RestController
 @RequestMapping(value = "filesystem/actions/folder")
 public class FolderActionsController {
+    private final Logger logger = LoggerFactory.getLogger(FolderActionsController.class);
     private final InformationRepository informationRepository;
     private final EncodingUtility encodingUtility;
     private final FileSystemRepository fileSystemRepository;
