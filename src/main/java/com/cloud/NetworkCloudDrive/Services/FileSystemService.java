@@ -62,25 +62,7 @@ public class FileSystemService implements FileSystemRepository {
     public Map<String, List<?>> listFilesV2(long folderId, SortListEnum sort, FilterListEnum filter, String filterQuery) throws IOException {
         List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderId)));
         List<List<?>> results = checkAndCollectFilesAndFolders(fileList);
-        if (sort != null) {
-            return sortAndFilterUtility.sortFileList(
-                    sort,
-                    (Stream<FileListItemDTO>) results.get(0).stream(),
-                    (Stream<FolderListItemDTO>) results.get(1).stream()
-            );
-        }
-        if (filter != null) {
-            return sortAndFilterUtility.filterFileList(
-                    filter,
-                    (Stream<FileListItemDTO>) results.get(0).stream(),
-                    (Stream<FolderListItemDTO>) results.get(1).stream(),
-                    Objects.requireNonNullElse(filterQuery, "")
-            );
-        }
-        return Map.of(
-                "files", results.get(0),
-                "folders", results.get(1)
-        );
+        return getStringListMap(sort, filter, filterQuery, results);
     }
 
     private List<List<?>> checkAndCollectFilesAndFolders(List<Path> filePaths) {
@@ -139,9 +121,31 @@ public class FileSystemService implements FileSystemRepository {
     }
 
     @Override
-    public Map<String, List<?>> collectAllMarked() {
-        return Map.of("files", sqLiteDAO.listAllMarkedFiles(userSession.getId(), true),
-                "folders", sqLiteDAO.listAllMarkedFolders(userSession.getId(), true));
+    public Map<String, List<?>> collectAllMarked(SortListEnum sort, FilterListEnum filter, String filterQuery) {
+        List<List<?>> results = new ArrayList<>();
+        results.add(sqLiteDAO.listAllMarkedFiles(userSession.getId(), true));
+        results.add(sqLiteDAO.listAllMarkedFolders(userSession.getId(), true));
+        return getStringListMap(sort, filter, filterQuery, results);
+    }
+
+    private Map<String, List<?>> getStringListMap(SortListEnum sort, FilterListEnum filter, String filterQuery, List<List<?>> results) {
+        if (sort != null) {
+            return sortAndFilterUtility.sortFileList(
+                    sort,
+                    (Stream<FileListItemDTO>) results.get(0).stream(),
+                    (Stream<FolderListItemDTO>) results.get(1).stream()
+            );
+        }
+        if (filter != null) {
+            return sortAndFilterUtility.filterFileList(
+                    filter,
+                    (Stream<FileListItemDTO>) results.get(0).stream(),
+                    (Stream<FolderListItemDTO>) results.get(1).stream(),
+                    Objects.requireNonNullElse(filterQuery, "")
+            );
+        }
+        return Map.of("files", results.get(0),
+                "folders", results.get(1));
     }
 
     @Override

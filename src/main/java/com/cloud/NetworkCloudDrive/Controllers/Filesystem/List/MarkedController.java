@@ -1,5 +1,7 @@
 package com.cloud.NetworkCloudDrive.Controllers.Filesystem.List;
 
+import com.cloud.NetworkCloudDrive.Models.Enum.FilterListEnum;
+import com.cloud.NetworkCloudDrive.Models.Enum.SortListEnum;
 import com.cloud.NetworkCloudDrive.Models.Response.JSONErrorResponse;
 import com.cloud.NetworkCloudDrive.Models.Response.JSONObjectArrayResponse;
 import com.cloud.NetworkCloudDrive.Repositories.FileSystemRepository;
@@ -9,21 +11,34 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
 @RequestMapping(value = "filesystem/marked")
 public class MarkedController {
-    private final Logger logger = LoggerFactory.getLogger(com.cloud.NetworkCloudDrive.Controllers.Filesystem.List.RecentsController.class);
+    private final Logger logger = LoggerFactory.getLogger(MarkedController.class);
     private final FileSystemRepository fileSystemRepository;
 
     public MarkedController(FileSystemRepository fileSystemRepository) {
         this.fileSystemRepository = fileSystemRepository;
+    }
+
+    @GetMapping(version = "3.0")
+    public ResponseEntity<Map<String, Map<String, List<?>>>> markedFilesystem(
+            @RequestParam(required = false) SortListEnum sort,
+            @RequestParam(required = false) FilterListEnum filter,
+            @RequestParam(required = false) String filterQuery) {
+        String message = "Marked Files and Folders";
+        if (filter != null) {
+            switch (filter) {
+                case FILES_ONLY -> message = "Marked Files";
+                case FOLDERS_ONLY -> message = "Marked Folders";
+            }
+        }
+        return ResponseEntity.ok().body(Map.of(message, fileSystemRepository.collectAllMarked(sort, filter, filterQuery)));
     }
 
     @GetMapping(version = "1.0")

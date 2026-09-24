@@ -19,6 +19,7 @@ public class SortAndFilterUtility {
     public SortAndFilterUtility() {
     }
 
+    //TODO allow combining filtering and sorting
     public Map<String, List<?>> sortFileList(SortListEnum sortListEnum, Stream<FileListItemDTO> fileList, Stream<FolderListItemDTO> folderList) {
         Comparator<FileListItemDTO> fileListItemDTOComparator = null;
         Comparator<FolderListItemDTO> folderListItemDTOComparator = null;

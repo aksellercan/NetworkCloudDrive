@@ -285,7 +285,10 @@ public class SQLiteDAO {
             if (encodingUtility.isBase32Decodable(listItemDTO.getName())) {
                 listItemDTO.setName(encodingUtility.decodedBase32SplitArray(listItemDTO.getName())[1]);
             }
-//            returnList.add(listItemDTO);
+            T converted = (T) MetadataSuperClass.convertToGeneric(listItemDTO);
+            if (converted != null) {
+                returnList.add(converted);
+            }
         }
         return returnList;
     }
