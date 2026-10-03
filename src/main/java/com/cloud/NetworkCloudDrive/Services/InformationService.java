@@ -27,7 +27,6 @@ public class InformationService implements InformationRepository {
     private final UserSession userSession;
     private final PathUtility pathUtility;
 
-
     public InformationService(FileUtility fileUtility, SQLiteDAO sqLiteDAO, UserSession userSession, PathUtility pathUtility) {
         this.fileUtility = fileUtility;
         this.userSession = userSession;
@@ -57,6 +56,16 @@ public class InformationService implements InformationRepository {
         }
         return returnFolder;
     }
+
+//    @Override
+//    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {
+//        FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
+//        retrievedFile.setLastUpdated(Instant.now());
+//        File fileCheck = fileUtility.returnFileIfItExists(
+//                pathUtility.getFolderPath(retrievedFile.getFolderId()) + File.separator + retrievedFile.getName());
+//        retrievedFile.setSize(fileCheck.length()); //bytes
+//        return retrievedFile;
+//    }
 
     @Override
     public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {

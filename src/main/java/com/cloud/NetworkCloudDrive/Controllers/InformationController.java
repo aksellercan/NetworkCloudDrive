@@ -52,6 +52,24 @@ public class InformationController {
         }
     }
 
+    @GetMapping(value = "get/foldermetadata", version = "2.0")
+    public @ResponseBody ResponseEntity<?> getFolderMetadata(@RequestParam long folderid) throws Exception {
+        FolderMetadata folderMetadata;
+        if (folderid > 0) {
+            folderMetadata = new FolderMetadata(informationRepository.getFolderMetadata(folderid));
+            folderMetadata.setPath(pathUtility.resolvePathFromIdString(folderMetadata.getPath()));
+        } else {
+            File folderRootMetadata = userUtility.returnUserFolder();
+            folderMetadata = new FolderMetadata(folderRootMetadata.getName(), folderRootMetadata.getPath());
+            folderMetadata.setId(0L);
+            folderMetadata.setUserid(userSession.getId());
+        }
+        String decodeName = encodingUtility.decodeBase32StringNoPadding(folderMetadata.getName());
+        String[] splitColons = decodeName.split(":");
+        folderMetadata.setName(splitColons[1]);
+        return ResponseEntity.ok().body(folderMetadata);
+    }
+
     @GetMapping(value = "get/foldermetadata", version = "1.0")
     public @ResponseBody ResponseEntity<?> getFolder(@RequestParam long folderid) {
         try {

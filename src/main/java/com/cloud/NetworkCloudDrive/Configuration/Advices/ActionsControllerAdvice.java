@@ -19,22 +19,22 @@ public class ActionsControllerAdvice {
     }
 
     @ExceptionHandler(FileNotFoundException.class)
-    public ResponseEntity<?> handleFileNotFoundException(IOException exception) {
+    public ResponseEntity<?> handleFileNotFoundException(FileNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONErrorResponse(exception, "Requested file not found"));
     }
 
     @ExceptionHandler(FileSystemException.class)
-    public ResponseEntity<?> handleFilesystemException(IOException exception) {
+    public ResponseEntity<?> handleFilesystemException(FileSystemException exception) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new JSONErrorResponse(exception, "FileSystem exception occurred"));
     }
 
     @ExceptionHandler(FileAlreadyExistsException.class)
-    public ResponseEntity<?> handleFileAlreadyExistsException(IOException exception) {
+    public ResponseEntity<?> handleFileAlreadyExistsException(FileAlreadyExistsException exception) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new JSONErrorResponse(exception, "File already exists"));
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<?> handleGlobalException(IOException exception) {
+    public ResponseEntity<?> handleGlobalException(Exception exception) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new JSONErrorResponse(exception));
     }
 }

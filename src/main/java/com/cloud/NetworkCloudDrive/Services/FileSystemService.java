@@ -17,6 +17,7 @@ import com.cloud.NetworkCloudDrive.Utilities.SortAndFilterUtility;
 import com.cloud.NetworkCloudDrive.Utilities.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -118,6 +119,17 @@ public class FileSystemService implements FileSystemRepository {
     @Override
     public Map<String, List<?>> collectAllRecents() {
         return Map.of("files", getRecentFiles(), "folders", getRecentFolders());
+    }
+
+    @Override
+    public Map<String, List<?>> collectAllRecents(Integer page, Integer size) {
+        if (page != null || size != null) {
+            return collectAllRecentsPageable(
+                    PageRequest.of(
+                            Objects.requireNonNullElse(page, 0),
+                            Objects.requireNonNullElse(size, 10)));
+        }
+        return collectAllRecents();
     }
 
     @Override

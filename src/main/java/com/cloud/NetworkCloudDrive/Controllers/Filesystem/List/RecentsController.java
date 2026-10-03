@@ -9,10 +9,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
@@ -24,6 +21,14 @@ public class RecentsController {
 
     public RecentsController(FileSystemRepository fileSystemRepository) {
         this.fileSystemRepository = fileSystemRepository;
+    }
+
+    @GetMapping(version = "3.0")
+    public ResponseEntity<?> listRecentsNew(@RequestParam(required = false) Integer page,
+                                            @RequestParam(required = false) Integer size) {
+        return ResponseEntity.ok(new JSONObjectArrayResponse(new Object[]{
+                fileSystemRepository.collectAllRecents(page, size)
+        }, "Recent files and folders"));
     }
 
     @GetMapping(version = "1.0")

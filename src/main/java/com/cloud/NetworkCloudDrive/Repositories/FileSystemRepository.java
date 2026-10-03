@@ -52,6 +52,8 @@ public interface FileSystemRepository {
 
     Map<String, List<?>> collectAllRecents();
 
+    Map<String, List<?>> collectAllRecents(Integer page, Integer size);
+
     Map<String, List<?>> collectAllMarked(SortListEnum sort, FilterListEnum filter, String filterQuery);
 
     Map<String, List<?>> collectAllRecentsPageable(Pageable pageable);
