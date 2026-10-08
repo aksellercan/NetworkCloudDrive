@@ -108,9 +108,28 @@ public class SortAndFilterUtility {
         );
     }
 
+    public Map<String, List<?>> returnFilteredMap(List<FileListItemDTO> fileList, List<FolderListItemDTO> folderList) {
+        return Map.of(
+                "files", fileList,
+                "folders", folderList
+        );
+    }
+
     public Map<String, List<?>> combineBothOptions(Stream<FileListItemDTO> fileList, Stream<FolderListItemDTO> folderList, SortListEnum sort, FilterListEnum filter, String filterQuery) {
         //first filter
         Map<String, List<?>> fileListFiltered = filterFileList(filter, fileList, folderList, filterQuery);
         return sortFileList(sort, (Stream<FileListItemDTO>) fileListFiltered.get("files"), (Stream<FolderListItemDTO>) fileListFiltered.get("folders"));
+    }
+
+
+    public void improvedFilter(FilterListEnum filter) {
+        switch(filter) {
+            case FILES_ONLY:
+
+        }
+    }
+
+    public void improvedSort() {
+
     }
 }
