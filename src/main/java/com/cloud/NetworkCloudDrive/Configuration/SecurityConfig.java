@@ -128,7 +128,7 @@ public class SecurityConfig {
             return collect;
         }
         for (String property : properties) {
-            collect.add(List.of(property.replaceAll("\"", "").split(",")));
+            collect.add(List.of(property.replace("\"", "").split(",")));
         }
         return collect;
     }
