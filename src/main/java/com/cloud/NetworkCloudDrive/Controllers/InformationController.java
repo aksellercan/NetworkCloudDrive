@@ -10,6 +10,7 @@ import com.cloud.NetworkCloudDrive.Utilities.PathUtility;
 import com.cloud.NetworkCloudDrive.Utilities.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,6 +40,7 @@ public class InformationController {
     }
 
     @GetMapping(value = "get/filemetadata", version = "1.0")
+    @Cacheable("file_info")
     public @ResponseBody ResponseEntity<?> getFile(@RequestParam long fileid) {
         try {
             FileMetadata fileMetadata = new FileMetadata(informationRepository.getFileMetadata(fileid));
@@ -53,6 +55,7 @@ public class InformationController {
     }
 
     @GetMapping(value = "get/foldermetadata", version = "1.0")
+    @Cacheable("folder_info")
     public @ResponseBody ResponseEntity<?> getFolder(@RequestParam long folderid) {
         try {
             FolderMetadata folderMetadata;

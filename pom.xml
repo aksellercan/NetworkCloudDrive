@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.cloud</groupId>
     <artifactId>NetworkCloudDrive</artifactId>
-    <version>0.7.18</version>
+    <version>0.7.19</version>
     <name>NetworkCloudDrive</name>
     <description>NetworkCloudDrive project built with Spring Boot</description>
     <url/>
@@ -95,6 +95,10 @@
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
         </dependency>
     </dependencies>
 

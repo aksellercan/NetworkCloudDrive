@@ -13,6 +13,8 @@ import com.cloud.NetworkCloudDrive.Utilities.ImageUtility;
 import com.cloud.NetworkCloudDrive.Utilities.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -70,6 +72,7 @@ public class UserController {
     }
 
     @PatchMapping(value = "update/mail", version = "1.0")
+    @CacheEvict(value = "user_info", allEntries = true)
     public @ResponseBody ResponseEntity<?> updateMail(@RequestBody UpdateUserDTO updateUserDTO) {
         try {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).
@@ -84,6 +87,7 @@ public class UserController {
     }
 
     @PatchMapping(value = "update/name", version = "1.0")
+    @CacheEvict(value = "user_info", allEntries = true)
     public @ResponseBody ResponseEntity<?> updateName(@RequestBody UpdateUserDTO updateUserDTO) {
         try {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).
@@ -110,6 +114,7 @@ public class UserController {
     }
 
     @DeleteMapping(value = "delete", version = "1.0")
+    @CacheEvict(value = "user_info", allEntries = true)
     public @ResponseBody ResponseEntity<?> deleteUser() {
         try {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).
@@ -124,6 +129,7 @@ public class UserController {
     }
 
     @GetMapping(value = "info", version = "1.0")
+    @Cacheable("user_info")
     public @ResponseBody ResponseEntity<?> info() {
         try {
             return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).

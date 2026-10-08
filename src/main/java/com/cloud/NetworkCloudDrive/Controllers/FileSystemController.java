@@ -20,6 +20,7 @@ import com.cloud.NetworkCloudDrive.Utilities.FileUtility;
 import com.cloud.NetworkCloudDrive.Utilities.PathUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
@@ -58,6 +59,7 @@ public class FileSystemController {
     }
 
     @PatchMapping(value = "file/rename")
+    @CacheEvict(value = "file_info", allEntries = true)
     public @ResponseBody ResponseEntity<JSONResponse> updateFileName(@RequestBody UpdateFileNameDTO updateFileNameDTO) {
         try {
             FileMetadata oldFile = informationRepository.getFileMetadata(updateFileNameDTO.getFile_id());
@@ -74,6 +76,7 @@ public class FileSystemController {
     }
 
     @PatchMapping(value = "folder/rename")
+    @CacheEvict(value = "folder_info", allEntries = true)
     public @ResponseBody ResponseEntity<JSONResponse> updateFolderName(@RequestBody UpdateFolderNameDTO updateFolderNameDTO) {
         try {
             FolderMetadata oldFolder = informationRepository.getFolderMetadata(updateFolderNameDTO.getFolder_id());
@@ -128,6 +131,7 @@ public class FileSystemController {
     }
 
     @DeleteMapping(value = "folder/remove")
+    @CacheEvict(value = "folder_info", allEntries = true)
     public @ResponseBody ResponseEntity<JSONResponse> removeFolder(@RequestParam long folderid) {
         try {
             FolderMetadata folderToRemove = informationRepository.getFolderMetadata(folderid);
@@ -142,6 +146,7 @@ public class FileSystemController {
     }
 
     @DeleteMapping(value = "file/remove", produces = MediaType.APPLICATION_JSON_VALUE)
+    @CacheEvict(value = "file_info", allEntries = true)
     public @ResponseBody ResponseEntity<JSONResponse> removeFile(@RequestParam long fileid) {
         try {
             FileMetadata fileToRemove = informationRepository.getFileMetadata(fileid);
