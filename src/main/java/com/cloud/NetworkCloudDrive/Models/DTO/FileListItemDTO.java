@@ -1,56 +1,25 @@
 package com.cloud.NetworkCloudDrive.Models.DTO;
 
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
+import com.cloud.NetworkCloudDrive.Models.Generics.ListItemSuperClass;
 
-import java.time.Instant;
-
-public class FileListItemDTO {
-    private long id;
-    private String name;
+public class FileListItemDTO extends ListItemSuperClass {
     private String mimeType;
     private long size;
-    private Instant createdAt;
-    private Instant lastAccessedAt;
     private boolean hasThumbnail;
-    private boolean marked;
 
     public FileListItemDTO() {
     }
 
     public FileListItemDTO(FileMetadata fileMetadata) {
-        this.id = fileMetadata.getId();
-        this.name = fileMetadata.getName();
+        setId(fileMetadata.getId());
+        setName(fileMetadata.getName());
         this.mimeType = fileMetadata.getMimiType();
         this.size = fileMetadata.getSize();
-        this.createdAt = fileMetadata.getCreatedAt();
+        setCreatedAt(fileMetadata.getCreatedAt());
         this.hasThumbnail = fileMetadata.isHasThumbnail();
-        this.lastAccessedAt = fileMetadata.getLastUpdated();
-        this.marked = fileMetadata.isMarked();
-    }
-
-
-    public long getId() {
-        return id;
-    }
-
-    public Instant getLastAccessedAt() {
-        return lastAccessedAt;
-    }
-
-    public void setLastAccessedAt(Instant lastAccessedAt) {
-        this.lastAccessedAt = lastAccessedAt;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
+        setLastAccessedAt(fileMetadata.getLastUpdated());
+        setMarked(fileMetadata.isMarked());
     }
 
     public String getMimeType() {
@@ -69,27 +38,11 @@ public class FileListItemDTO {
         this.size = size;
     }
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
     public boolean isHasThumbnail() {
         return hasThumbnail;
     }
 
     public void setHasThumbnail(boolean hasThumbnail) {
         this.hasThumbnail = hasThumbnail;
-    }
-
-    public boolean isMarked() {
-        return marked;
-    }
-
-    public void setMarked(boolean marked) {
-        this.marked = marked;
     }
 }

@@ -48,9 +48,13 @@ public interface FileSystemRepository {
 
     Map<String, List<?>> getListOfMetadataFromPath(List<Path> filePaths, FilterListEnum filterListEnum, String filterCase) throws SQLException;
 
+    Map<String, List<?>> listFilesV2(long folderId, SortListEnum sort, FilterListEnum filter, String filterQuery) throws IOException;
+
     Map<String, List<?>> collectAllRecents();
 
-    Map<String, List<?>> collectAllMarked();
+    Map<String, List<?>> collectAllRecents(Integer page, Integer size);
+
+    Map<String, List<?>> collectAllMarked(SortListEnum sort, FilterListEnum filter, String filterQuery);
 
     Map<String, List<?>> collectAllRecentsPageable(Pageable pageable);
 

@@ -17,6 +17,7 @@ import com.cloud.NetworkCloudDrive.Utilities.SortAndFilterUtility;
 import com.cloud.NetworkCloudDrive.Utilities.UserUtility;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
@@ -58,7 +59,14 @@ public class FileSystemService implements FileSystemRepository {
         this.sortAndFilterUtility = sortAndFilterUtility;
     }
 
-    private List<List<?>> checkAndCollectFilesAndFolders(List<Path> filePaths) throws SQLException {
+    @Override
+    public Map<String, List<?>> listFilesV2(long folderId, SortListEnum sort, FilterListEnum filter, String filterQuery) throws IOException {
+        List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderId)));
+        List<List<?>> results = checkAndCollectFilesAndFolders(fileList);
+        return getStringListMap(sort, filter, filterQuery, results);
+    }
+
+    private List<List<?>> checkAndCollectFilesAndFolders(List<Path> filePaths) {
         List<FileListItemDTO> fileList = new LinkedList<>();
         List<FolderListItemDTO> folderList = new LinkedList<>();
         for (Path file : filePaths) {
@@ -73,12 +81,18 @@ public class FileSystemService implements FileSystemRepository {
             String actualFileName = arrayString[1];
             if (Files.isRegularFile(file)) {
                 FileMetadata foundFile = sqLiteDAO.queryFileMetadata(actualFileId, userSession.getId());
+                if (foundFile == null) {
+                    continue;
+                }
                 FileListItemDTO fileListItemDTO = new FileListItemDTO(foundFile);
                 fileListItemDTO.setName(actualFileName);
                 fileList.add(fileListItemDTO);
                 continue;
             }
             FolderMetadata foundFolderMetadata = sqLiteDAO.queryFolderMetadata(actualFileId, userSession.getId());
+            if (foundFolderMetadata == null) {
+                continue;
+            }
             FolderListItemDTO folderListItemDTO = new FolderListItemDTO(foundFolderMetadata);
             folderListItemDTO.setName(actualFileName);
             folderList.add(folderListItemDTO);
@@ -108,9 +122,42 @@ public class FileSystemService implements FileSystemRepository {
     }
 
     @Override
-    public Map<String, List<?>> collectAllMarked() {
-        return Map.of("files", sqLiteDAO.listAllMarkedFiles(userSession.getId(), true),
-                "folders", sqLiteDAO.listAllMarkedFolders(userSession.getId(), true));
+    public Map<String, List<?>> collectAllRecents(Integer page, Integer size) {
+        if (page != null || size != null) {
+            return collectAllRecentsPageable(
+                    PageRequest.of(
+                            Objects.requireNonNullElse(page, 0),
+                            Objects.requireNonNullElse(size, 10)));
+        }
+        return collectAllRecents();
+    }
+
+    @Override
+    public Map<String, List<?>> collectAllMarked(SortListEnum sort, FilterListEnum filter, String filterQuery) {
+        List<List<?>> results = new ArrayList<>();
+        results.add(sqLiteDAO.listAllMarkedFiles(userSession.getId(), true));
+        results.add(sqLiteDAO.listAllMarkedFolders(userSession.getId(), true));
+        return getStringListMap(sort, filter, filterQuery, results);
+    }
+
+    private Map<String, List<?>> getStringListMap(SortListEnum sort, FilterListEnum filter, String filterQuery, List<List<?>> results) {
+        if (sort != null) {
+            return sortAndFilterUtility.sortFileList(
+                    sort,
+                    (Stream<FileListItemDTO>) results.get(0).stream(),
+                    (Stream<FolderListItemDTO>) results.get(1).stream()
+            );
+        }
+        if (filter != null) {
+            return sortAndFilterUtility.filterFileList(
+                    filter,
+                    (Stream<FileListItemDTO>) results.get(0).stream(),
+                    (Stream<FolderListItemDTO>) results.get(1).stream(),
+                    Objects.requireNonNullElse(filterQuery, "")
+            );
+        }
+        return Map.of("files", results.get(0),
+                "folders", results.get(1));
     }
 
     @Override
@@ -193,7 +240,7 @@ public class FileSystemService implements FileSystemRepository {
         //find folder
         Path checkExists = fileUtility.returnPathIfItExists(pathToRemove);
         //remove Folder
-        deleteFsTree(checkExists, folder.getPath());
+        deleteFsTree(checkExists);
         if (!emptyLeftoversDirectory(checkExists)) {
             if (!Files.deleteIfExists(checkExists)) {
                 throw new IOException("Failed to remove parent folder");
@@ -221,7 +268,7 @@ public class FileSystemService implements FileSystemRepository {
             return false;
         }
 
-        logger.info("Items inside folder {}", subFiles.size());
+        logger.debug("Items inside folder {}", subFiles.size());
         for (Path subFile : subFiles) {
             if (fileUtility.isIgnoredSystemFile(subFile.getFileName().toString())) {
                 return !Files.deleteIfExists(subFile);
@@ -233,7 +280,7 @@ public class FileSystemService implements FileSystemRepository {
     //TODO instead of generating Id paths use startsWith from DAO and filter files by found folders id's then delete them both from db and system
     //TODO needs a reworked function
     @Deprecated
-    private void deleteFsTree(Path dir, String startingIdPath) throws IOException {
+    private void deleteFsTree(Path dir) throws IOException {
         logger.info("Start File Tree deletion operation");
         long errorCount = 0;
         List<Path> fileTreeStream = fileUtility.walkFsTree(dir, true);
@@ -295,7 +342,7 @@ public class FileSystemService implements FileSystemRepository {
         //check duplicate
         if (fileUtility.checkIfFileExistsDecodeNames(pathUtility.returnParentFolderPathFromFolderID(folder.getId()), newName))
             throw new FileAlreadyExistsException(String.format("Folder with name %s already exists", newName));
-        // Encode newName in BASE32
+        // Encode newName in BASE64
         String encodeBase32FolderName = encodingUtility.encodeBase32FolderName(folder.getId(), newName, folder.getUserid());
         //rename file
         Path renamedFolder =
@@ -304,7 +351,7 @@ public class FileSystemService implements FileSystemRepository {
         Path newUpdatedPath = Files.move(checkExists, renamedFolder);
         if (Files.exists(newUpdatedPath)) {
             //set new name and path
-            folder.setName(encodeBase32FolderName);
+            folder.setName(newName);
             //save
             sqLiteDAO.saveFolder(folder);
             logger.info("Renamed folder full path: {}", renamedFolder);
@@ -341,7 +388,7 @@ public class FileSystemService implements FileSystemRepository {
         // mimetype has bug in the library (cant detect types such as YAML)
         String newMimeType = fileUtility.getMimeTypeFromExtensionUsingTikaCore(newUpdatedPath.toFile()); /* <- get new mimetype of file */
         //set new name and path
-        file.setName(encodeBase32FolderName);
+        file.setName(newName);
         file.setMimiType(newMimeType != null ? newMimeType : file.getMimiType());
         //save
         sqLiteDAO.saveFile(file);

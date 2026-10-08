@@ -5,6 +5,8 @@ import com.cloud.NetworkCloudDrive.Models.DTO.FileListItemDTO;
 import com.cloud.NetworkCloudDrive.Models.DTO.FolderListItemDTO;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
+import com.cloud.NetworkCloudDrive.Models.Generics.ListItemSuperClass;
+import com.cloud.NetworkCloudDrive.Models.Generics.MetadataSuperClass;
 import com.cloud.NetworkCloudDrive.Models.ThumbnailMetadata;
 import com.cloud.NetworkCloudDrive.Models.UserEntity;
 import com.cloud.NetworkCloudDrive.Properties.ThumbnailProperties;
@@ -19,12 +21,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.file.FileSystemException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -163,12 +162,8 @@ public class SQLiteDAO {
 
     // Database service layer
     @Transactional
-    public FileMetadata findFileMetadataById(long id) throws SQLException {
-        Optional<FileMetadata> fileMetadata = sqLiteFileRepository.findById(id);
-        if (fileMetadata.isEmpty()) {
-            throw new SQLException("File not found with id " + id);
-        }
-        return fileMetadata.get();
+    public FileMetadata findFileMetadataById(long id) {
+        return sqLiteFileRepository.findById(id).orElse(null);
     }
 
     @Transactional
@@ -223,18 +218,13 @@ public class SQLiteDAO {
     }
 
     @Transactional
-    public UserEntity findUserByNameAndMail(String name, String mail) throws SQLException {
-        Optional<UserEntity> userOptional = sqLiteUserEntityRepository.findOne(Example.of(setupExampleUser(name, mail)));
-        if (userOptional.isEmpty()) throw new SQLException("User does not exist");
-        return userOptional.get();
+    public UserEntity findUserByNameAndMail(String name, String mail) {
+        return sqLiteUserEntityRepository.findOne(Example.of(setupExampleUser(name, mail))).orElse(null);
     }
 
     @Transactional
-    public UserEntity findUserByMail(String mail) throws UsernameNotFoundException {
-        Optional<UserEntity> userOptional = sqLiteUserEntityRepository.findByMail(mail);
-        if (userOptional.isEmpty())
-            throw new UsernameNotFoundException("User not found by mail " + mail);
-        return userOptional.get();
+    public UserEntity findUserByMail(String mail) {
+        return sqLiteUserEntityRepository.findByMail(mail).orElse(null);
     }
 
     @Transactional
@@ -245,21 +235,13 @@ public class SQLiteDAO {
     }
 
     @Transactional
-    public FileMetadata queryFileMetadata(long fileId, long userId) throws SQLException {
-        Optional<FileMetadata> fileMetadata = sqLiteFileRepository.findById(fileId).filter(fl -> fl.getUserid() == userId);
-        if (fileMetadata.isEmpty())
-            throw new SQLException("File with Id " + fileId + " does not exist");
-        return fileMetadata.get();
+    public FileMetadata queryFileMetadata(long fileId, long userId) {
+        return sqLiteFileRepository.findById(fileId).filter(fl -> fl.getUserid() == userId).orElse(null);
     }
 
     @Transactional
-    public ThumbnailMetadata queryThumbnailMetadata(long thumbnailId, long userId) throws SQLException {
-        Optional<ThumbnailMetadata> thumbnailMetadata = sqLiteThumbnailRepository
-                .findById(thumbnailId)
-                .filter(tm -> tm.getUserId() == userId);
-        if (thumbnailMetadata.isEmpty())
-            throw new SQLException("Thumbnail with Id " + thumbnailId + " does not exist");
-        return thumbnailMetadata.get();
+    public ThumbnailMetadata queryThumbnailMetadata(long thumbnailId, long userId) {
+        return sqLiteThumbnailRepository.findById(thumbnailId).filter(tm -> tm.getUserId() == userId).orElse(null);
     }
 
     @Transactional
@@ -275,47 +257,38 @@ public class SQLiteDAO {
     @Transactional
     public List<FileListItemDTO> getAllFilesBelongingToUserAsDTO(long userId) {
         List<FileMetadata> list = sqLiteFileRepository.findAllByUserid(userId);
-        List<FileListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FileMetadata fileMetadata : list) {
-            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
-            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
-                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
-            }
-            returnList.add(fileListItemDTO);
-        }
-        return returnList;
+        return decodeNamesAndReturnList(list);
     }
 
     @Transactional
     public List<FileListItemDTO> getAllFilesBelongingToUserAsDTOPageable(long userId, Pageable pageable) {
         // queries all folders where user id = x then orders by lastupdated descending
         Page<FileMetadata> list = sqLiteFileRepository.findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(userId, pageable);
-        List<FileListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FileMetadata fileMetadata : list) {
-            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
-            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
-                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
-            }
-            returnList.add(fileListItemDTO);
-        }
-        return returnList;
+//        return decodeNamesAndReturnList(list);
+        return new ArrayList<>();
     }
 
     @Transactional
-    public FolderMetadata getFolderMetadataFromEncoding(String encodedFolderName, long userId) throws SQLException {
-        return queryFolderMetadata(encodingUtility.getMetadataIDFromEncodedBase32(encodedFolderName), userId);
+    public FolderMetadata getFolderMetadataFromEncoding(String encodedFolderName, long userId) {
+        return queryFolderMetadata(encodingUtility.getMetadataIDFromEncodedBase64(encodedFolderName), userId);
     }
 
     @Transactional
     public List<FolderListItemDTO> getAllFoldersBelongingToUserAsDTO(long userId) {
         List<FolderMetadata> list = sqLiteFolderRepository.findAllByUserid(userId);
-        List<FolderListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FolderMetadata folderMetadata : list) {
-            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
-            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
-                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
+        return decodeNamesAndReturnList(list);
+    }
+
+    public <T extends ListItemSuperClass, P extends MetadataSuperClass> List<T> decodeNamesAndReturnList(List<P> inputList) {
+        List<T> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
+        for (P listItemDTO : inputList) {
+            if (encodingUtility.isBase32Decodable(listItemDTO.getName())) {
+                listItemDTO.setName(encodingUtility.decodedBase32SplitArray(listItemDTO.getName())[1]);
             }
-            returnList.add(folderListItemDTO);
+            T converted = (T) MetadataSuperClass.convertToGeneric(listItemDTO);
+            if (converted != null) {
+                returnList.add(converted);
+            }
         }
         return returnList;
     }
@@ -323,15 +296,8 @@ public class SQLiteDAO {
     @Transactional
     public List<FolderListItemDTO> getAllFoldersBelongingToUserAsDTOPageable(long userId, Pageable pageable) {
         Page<FolderMetadata> list = sqLiteFolderRepository.findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(userId, pageable);
-        List<FolderListItemDTO> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
-        for (FolderMetadata folderMetadata : list) {
-            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
-            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
-                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
-            }
-            returnList.add(folderListItemDTO);
-        }
-        return returnList;
+//        return decodeNamesAndReturnList(list);
+        return new ArrayList<>();
     }
 
     public ThumbnailMetadata queryThumbnailMetadataUsingFileId(long fileId, long userId) {
@@ -342,19 +308,13 @@ public class SQLiteDAO {
     }
 
     @Transactional
-    public FolderMetadata queryFolderMetadata(long folderId, long userId) throws SQLException {
-        Optional<FolderMetadata> folderMetadata = sqLiteFolderRepository.findById(folderId).filter(f -> f.getUserid() == userId);
-        if (folderMetadata.isEmpty())
-            throw new SQLException("Folder with Id " + folderId + " does not exist");
-        return folderMetadata.get();
+    public FolderMetadata queryFolderMetadata(long folderId, long userId) {
+        return sqLiteFolderRepository.findById(folderId).filter(f -> f.getUserid() == userId).orElse(null);
     }
 
     @Transactional
-    public List<FolderMetadata> getChildrenFoldersInDirectory(String idPath) throws SQLException {
-        List<FolderMetadata> findAllByPathList = sqLiteFolderRepository.findAllByPathContainsIgnoreCase(idPath);
-        if (findAllByPathList.isEmpty())
-            throw new SQLException("Can't find folders at idPath " + idPath + " in database");
-        return findAllByPathList;
+    public List<FolderMetadata> getChildrenFoldersInDirectory(String idPath) {
+        return sqLiteFolderRepository.findAllByPathContainsIgnoreCase(idPath);
     }
 
     @Transactional
@@ -377,7 +337,7 @@ public class SQLiteDAO {
     }
 
     @Transactional
-    public FileMetadata getFileMetadataByFolderIdNameAndUserId(long folderId, String name, long userId) throws FileSystemException {
+    public FileMetadata getFileMetadataByFolderIdNameAndUserId(long folderId, String name, long userId) {
         // dummy metadata for search
         FileMetadata dummyFileMetadata = new FileMetadata();
         dummyFileMetadata.setName(name);
@@ -398,13 +358,11 @@ public class SQLiteDAO {
         Example<FileMetadata> fileMetadataWithThumbnailExample = Example.of(dummyFileMetadata);
         Optional<FileMetadata> optionalFileMetadataWithThumbnail = sqLiteFileRepository.findOne(fileMetadataWithThumbnailExample);
         logger.info("Example with thumbnail {}", dummyFileMetadata);
-        if (optionalFileMetadataWithThumbnail.isEmpty())
-            throw new FileSystemException("File not found in database. Is database synced?");
-        return optionalFileMetadataWithThumbnail.get();
+        return optionalFileMetadataWithThumbnail.orElse(null);
     }
 
     @Transactional
-    public FolderMetadata getFolderMetadataFromIdPathAndName(String idPath, String name, long userId) throws FileSystemException {
+    public FolderMetadata getFolderMetadataFromIdPathAndName(String idPath, String name, long userId) {
         // dummy metadata for search
         FolderMetadata dummyFolderMetadata = new FolderMetadata();
         dummyFolderMetadata.setName(name);
@@ -412,12 +370,8 @@ public class SQLiteDAO {
         dummyFolderMetadata.setId(null);
         dummyFolderMetadata.setCreatedAt(null);
         dummyFolderMetadata.setUserid(userId); //current logged-in user id
-        Example<FolderMetadata> folderMetadataExample = Example.of(dummyFolderMetadata);
-        Optional<FolderMetadata> optionalFolderMetadata = sqLiteFolderRepository.findOne(folderMetadataExample);
         logger.info("Example folder: {}", dummyFolderMetadata);
-        if (optionalFolderMetadata.isEmpty())
-            throw new FileSystemException("Folder not found in database. Is database synced?");
-        return optionalFolderMetadata.get();
+        return sqLiteFolderRepository.findOne(Example.of(dummyFolderMetadata)).orElse(null);
     }
 
     @Transactional
@@ -463,11 +417,11 @@ public class SQLiteDAO {
      *
      * @param folderId folderId of folder
      * @return if folderId is not 0 returns folder's ID path else "0"
-     * @throws SQLException if folder with folderId is not found
      */
     @Transactional
-    public String getIdPath(long folderId, long userId) throws SQLException {
-        return folderId > 0 ? queryFolderMetadata(folderId, userId).getPath() : "0";
+    public String getIdPath(long folderId, long userId) {
+        FolderMetadata folderMetadata = queryFolderMetadata(folderId, userId);
+        return folderMetadata != null ? folderMetadata.getPath() : "0";
     }
 
     @Transactional
@@ -479,28 +433,12 @@ public class SQLiteDAO {
     @Transactional
     public List<FileListItemDTO> listAllMarkedFiles(long userId, boolean marked) {
         List<FileMetadata> fileMetadataList = sqLiteFileRepository.findAllByUseridAndMarked(userId, marked);
-        List<FileListItemDTO> fileListItemDTOS = new ArrayList<>();
-        for (FileMetadata fileMetadata : fileMetadataList) {
-            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
-            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
-                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
-            }
-            fileListItemDTOS.add(fileListItemDTO);
-        }
-        return fileListItemDTOS;
+        return decodeNamesAndReturnList(fileMetadataList);
     }
 
     @Transactional
     public List<FolderListItemDTO> listAllMarkedFolders(long userId, boolean marked) {
         List<FolderMetadata> folderMetadataList = sqLiteFolderRepository.findAllByUseridAndMarked(userId, marked);
-        List<FolderListItemDTO> folderListItemDTOS = new ArrayList<>();
-        for (FolderMetadata folderMetadata : folderMetadataList) {
-            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
-            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
-                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
-            }
-            folderListItemDTOS.add(folderListItemDTO);
-        }
-        return folderListItemDTOS;
+        return decodeNamesAndReturnList(folderMetadataList);
     }
 }

@@ -19,6 +19,7 @@ public class SortAndFilterUtility {
     public SortAndFilterUtility() {
     }
 
+    //TODO allow combining filtering and sorting
     public Map<String, List<?>> sortFileList(SortListEnum sortListEnum, Stream<FileListItemDTO> fileList, Stream<FolderListItemDTO> folderList) {
         Comparator<FileListItemDTO> fileListItemDTOComparator = null;
         Comparator<FolderListItemDTO> folderListItemDTOComparator = null;
@@ -105,5 +106,11 @@ public class SortAndFilterUtility {
                 "files", (fileListItemDTOPredicate != null ? fileList.filter(fileListItemDTOPredicate).toList() : fileList.toList()),
                 "folders", (folderListItemDTOPredicate != null ? folderList.filter(folderListItemDTOPredicate).toList() : folderList.toList())
         );
+    }
+
+    public Map<String, List<?>> combineBothOptions(Stream<FileListItemDTO> fileList, Stream<FolderListItemDTO> folderList, SortListEnum sort, FilterListEnum filter, String filterQuery) {
+        //first filter
+        Map<String, List<?>> fileListFiltered = filterFileList(filter, fileList, folderList, filterQuery);
+        return sortFileList(sort, (Stream<FileListItemDTO>) fileListFiltered.get("files"), (Stream<FolderListItemDTO>) fileListFiltered.get("folders"));
     }
 }
