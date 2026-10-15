@@ -85,6 +85,27 @@ class InformationServiceTest {
     }
 
     @Test
+    void getFolderMetadata_DaoError_ThrowsException() throws Exception {
+        when(sqLiteDAO.queryFolderMetadata(5L, 0L)).thenThrow(new SQLException("DB error"));
+        when(userSession.getId()).thenReturn(0L);
+
+        assertThrows(SQLException.class, () -> informationService.getFolderMetadata(5L));
+    }
+
+    @Test
+    void getFolderMetadata_FolderMissingOnDisk_ThrowsException() throws Exception {
+        FolderMetadata folder = new FolderMetadata("myfolder", "0/1/2");
+        folder.setId(5L);
+        when(sqLiteDAO.queryFolderMetadata(5L, 0L)).thenReturn(folder);
+        when(userSession.getId()).thenReturn(0L);
+        when(pathUtility.resolvePathFromIdString("0/1/2")).thenReturn("user_folder/myfolder");
+        when(fileUtility.returnFileIfItExists("user_folder/myfolder"))
+                .thenThrow(new FileNotFoundException("Folder does not exist"));
+
+        assertThrows(FileNotFoundException.class, () -> informationService.getFolderMetadata(5L));
+    }
+
+    @Test
     void getFolderMetadataByFolderIdAndName_FindsCorrectFolder() throws Exception {
         long folderId = 1L;
         String name = "target";
@@ -134,5 +155,26 @@ class InformationServiceTest {
         FolderMetadata result = informationService.getFolderMetadataByFolderIdAndName(folderId, "folder2", skipList);
 
         assertEquals(3L, result.getId());
+    }
+
+    @Test
+    void getFolderMetadataByFolderIdAndName_NoMatchingDepth_ReturnsEmptyFolderMetadata() throws Exception {
+        // idPath "0/1" has 2 sections; only folders with 3 sections (direct children) match,
+        // so same-depth ("0/1") and too-deep ("0/1/4/9") entries must not match
+        FolderMetadata sameDepth = new FolderMetadata("sibling", "0/1");
+        sameDepth.setId(3L);
+        FolderMetadata tooDeep = new FolderMetadata("nested", "0/1/4/9");
+        tooDeep.setId(4L);
+
+        when(sqLiteDAO.getIdPath(1L, 0L)).thenReturn("0/1");
+        when(userSession.getId()).thenReturn(0L);
+        when(sqLiteDAO.findAllContainingSectionOfIdPathIgnoreCase("0/1", 0L))
+                .thenReturn(List.of(sameDepth, tooDeep));
+
+        FolderMetadata result = informationService.getFolderMetadataByFolderIdAndName(1L, "target", List.of());
+
+        assertNotNull(result);
+        assertNull(result.getId());
+        assertNull(result.getName());
     }
 }

@@ -23,11 +23,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doReturn;
 
 @SpringBootTest
 @TestPropertySource(locations = "classpath:/application-test.properties")
@@ -45,7 +48,7 @@ class ThumbnailGeneratorTest {
     @TempDir
     Path tempRoot;
 
-    @Autowired
+    @MockitoSpyBean
     @Lazy
     private TestUtility testUtility;
 
@@ -99,14 +102,6 @@ class ThumbnailGeneratorTest {
     }
 
     @Test
-    void nasaApodImage_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        Optional<BufferedImage> nasaImage = testUtility.fetchNasaApodImage();
-        Assumptions.assumeTrue(nasaImage.isPresent(),
-                "NASA APOD returned no image, skipping thumbnail test");
-        assertThumbnailGenerated(nasaImage.get());
-    }
-
-    @Test
     void portraitGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
         BufferedImage img = testUtility.gradient(100, 200, Color.RED, Color.BLUE);
         assertThumbnailGenerated(img);
@@ -138,7 +133,10 @@ class ThumbnailGeneratorTest {
 
         String fileName = "test_image.jpg";
         Path imageFile = userFolder.resolve(fileName);
-        ImageIO.write(source, "jpg", imageFile.toFile());
+        boolean written = ImageIO.write(source, "jpg", imageFile.toFile());
+        assertTrue(written, "Source image must be writable as jpg, otherwise the later move would fail");
+        assertTrue(Files.exists(imageFile) && Files.size(imageFile) > 0,
+                "Written image file must exist and be non-empty at " + imageFile);
 
         FileMetadata fileMetadata = new FileMetadata(fileName, 0L, userId, "image/jpeg", (long) width * height * 3);
         fileMetadata = sqLiteDAO.saveFile(fileMetadata);
