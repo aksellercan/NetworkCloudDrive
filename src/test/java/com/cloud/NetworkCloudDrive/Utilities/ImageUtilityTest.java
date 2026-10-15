@@ -189,4 +189,52 @@ class ImageUtilityTest {
         assertEquals(30, result.getWidth());
         assertEquals(30, result.getHeight());
     }
+
+    @Test
+    void getThumbnailPath_returnsPathUnderUserFolder() throws Exception {
+        Path userFolder = tempDir.resolve("user_enc");
+        Files.createDirectories(userFolder);
+        when(userUtility.returnUserFolderasPath()).thenReturn(userFolder);
+
+        Path result = imageUtility.getThumbnailPath();
+
+        assertEquals(userFolder.resolve(".thumbnails"), result);
+    }
+
+    @Test
+    void getThumbnailPath_portrait_returnsPortraitFolder() throws Exception {
+        Path userFolder = tempDir.resolve("user_enc");
+        Files.createDirectories(userFolder);
+        when(userUtility.returnUserFolderasPath()).thenReturn(userFolder);
+
+        Path result = imageUtility.getThumbnailPath(true);
+
+        assertEquals(userFolder.resolve(".thumbnails").resolve("portrait"), result);
+    }
+
+    @Test
+    void getThumbnailPath_backgroundTask_portrait_returnsPortraitFolder() throws Exception {
+        com.cloud.NetworkCloudDrive.Models.DTO.UserDTO userDTO =
+                new com.cloud.NetworkCloudDrive.Models.DTO.UserDTO(1L, "t", "t@test.com");
+        Path userFolder = tempDir.resolve("user_enc");
+        Files.createDirectories(userFolder);
+        when(userUtility.returnUserFolderAsPathBackgroundTask(userDTO)).thenReturn(userFolder);
+
+        Path result = imageUtility.getThumbnailPathBackgroundTask(true, userDTO);
+
+        assertEquals(userFolder.resolve(".thumbnails").resolve("portrait"), result);
+    }
+
+    @Test
+    void getThumbnailPath_backgroundTask_landscape_returnsLandscapeFolder() throws Exception {
+        com.cloud.NetworkCloudDrive.Models.DTO.UserDTO userDTO =
+                new com.cloud.NetworkCloudDrive.Models.DTO.UserDTO(1L, "t", "t@test.com");
+        Path userFolder = tempDir.resolve("user_enc");
+        Files.createDirectories(userFolder);
+        when(userUtility.returnUserFolderAsPathBackgroundTask(userDTO)).thenReturn(userFolder);
+
+        Path result = imageUtility.getThumbnailPathBackgroundTask(false, userDTO);
+
+        assertEquals(userFolder.resolve(".thumbnails").resolve("horizontal"), result);
+    }
 }

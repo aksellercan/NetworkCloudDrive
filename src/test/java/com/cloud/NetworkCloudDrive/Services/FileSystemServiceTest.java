@@ -382,4 +382,196 @@ class FileSystemServiceTest {
         verify(sqLiteDAO).getAllFilesBelongingToUserAsDTOPageable(1L, pageable);
         verify(sqLiteDAO).getAllFoldersBelongingToUserAsDTOPageable(1L, pageable);
     }
+
+    @Test
+    void collectAllMarked_ReturnsMarkedFilesAndFolders() {
+        FileMetadata markedFile = new FileMetadata("enc_file", 1L, 1L, "text/plain", 100L);
+        markedFile.setId(1L);
+        markedFile.setMarked(true);
+        FolderMetadata markedFolder = new FolderMetadata("enc_folder", "0/5");
+        markedFolder.setId(5L);
+        markedFolder.setMarked(true);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.listAllMarkedFiles(1L, true)).thenReturn(List.of(new FileListItemDTO(markedFile)));
+        when(sqLiteDAO.listAllMarkedFolders(1L, true)).thenReturn(List.of(new FolderListItemDTO(markedFolder)));
+
+        Map<String, List<?>> result = fileSystemService.collectAllMarked();
+
+        List<FileListItemDTO> files = (List<FileListItemDTO>) result.get("files");
+        List<FolderListItemDTO> folders = (List<FolderListItemDTO>) result.get("folders");
+        assertEquals(1, files.size());
+        assertEquals(1L, files.get(0).getId());
+        assertTrue(files.get(0).isMarked());
+        assertEquals(1, folders.size());
+        assertEquals(5L, folders.get(0).getId());
+        assertTrue(folders.get(0).isMarked());
+        verify(sqLiteDAO).listAllMarkedFiles(1L, true);
+        verify(sqLiteDAO).listAllMarkedFolders(1L, true);
+    }
+
+    @Test
+    void getRecentFilesPageable_ReturnsDaoResult() {
+        Pageable pageable = PageRequest.of(0, 5);
+        FileMetadata file = new FileMetadata("enc_file", 1L, 1L, "text/plain", 100L);
+        file.setId(1L);
+        file.setLastUpdated(Instant.parse("2026-02-01T00:00:00Z"));
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.getAllFilesBelongingToUserAsDTOPageable(1L, pageable))
+                .thenReturn(List.of(new FileListItemDTO(file)));
+
+        List<FileListItemDTO> result = fileSystemService.getRecentFilesPageable(pageable);
+
+        assertEquals(1, result.size());
+        assertEquals(1L, result.get(0).getId());
+        verify(sqLiteDAO).getAllFilesBelongingToUserAsDTOPageable(1L, pageable);
+    }
+
+    @Test
+    void getRecentFoldersPageable_ReturnsDaoResult() {
+        Pageable pageable = PageRequest.of(0, 5);
+        FolderMetadata folder = new FolderMetadata("enc_folder", "0/5");
+        folder.setId(5L);
+        folder.setLastUpdated(Instant.parse("2026-02-01T00:00:00Z"));
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.getAllFoldersBelongingToUserAsDTOPageable(1L, pageable))
+                .thenReturn(List.of(new FolderListItemDTO(folder)));
+
+        List<?> result = fileSystemService.getRecentFoldersPageable(pageable);
+
+        assertEquals(1, result.size());
+        assertEquals(5L, ((FolderListItemDTO) result.get(0)).getId());
+        verify(sqLiteDAO).getAllFoldersBelongingToUserAsDTOPageable(1L, pageable);
+    }
+
+    @Test
+    void getListOfMetadataFromPath_WithFilterAndCase_DelegatesToFilterUtility() throws Exception {
+        Path filePath = Files.createFile(tempDir.resolve("encoded_fc"));
+        List<Path> paths = List.of(filePath);
+
+        when(encodingUtility.decodedBase32SplitArray("encoded_fc")).thenReturn(new String[]{"1", "doc.pdf", "1"});
+        when(fileUtility.isIgnoredFile(anyString())).thenReturn(false);
+        when(userSession.getId()).thenReturn(1L);
+
+        FileMetadata fileMetadata = new FileMetadata("enc", 1L, 1L, "application/pdf", 200L);
+        fileMetadata.setId(1L);
+        when(sqLiteDAO.queryFileMetadata(1L, 1L)).thenReturn(fileMetadata);
+
+        Map<String, List<?>> expected = Map.of("files", List.of(), "folders", List.of());
+        when(sortAndFilterUtility.filterFileList(eq(FilterListEnum.KEYWORD), any(), any(), eq("needle")))
+                .thenReturn((Map) expected);
+
+        Map<String, List<?>> result = fileSystemService.getListOfMetadataFromPath(
+                paths, FilterListEnum.KEYWORD, "needle");
+
+        assertNotNull(result);
+        verify(sortAndFilterUtility).filterFileList(eq(FilterListEnum.KEYWORD), any(), any(), eq("needle"));
+    }
+
+    @Test
+    void removeFolder_EmptyFolder_DeletesFsTreeAndFolder() throws Exception {
+        FolderMetadata folder = new FolderMetadata("enc_folder", "0/5");
+        folder.setId(5L);
+        folder.setUserid(1L);
+
+        Path userDir = Files.createDirectories(tempDir.resolve("user"));
+        Path folderDir = Files.createDirectory(userDir.resolve("enc_folder"));
+        Path innerFile = Files.writeString(folderDir.resolve("enc_file.txt"), "content");
+
+        FolderMetadata parentFolderMetadata = new FolderMetadata("enc_folder", "0/5");
+        parentFolderMetadata.setId(5L);
+        FileMetadata innerFileMetadata = new FileMetadata("enc_file.txt", 5L, 1L, "text/plain", 7L);
+        innerFileMetadata.setId(11L);
+
+        when(pathUtility.resolvePathFromIdString("0/5")).thenReturn(Paths.get("user", "enc_folder").toString());
+        when(fileUtility.returnPathIfItExists(Paths.get("user", "enc_folder").toString())).thenReturn(folderDir);
+        when(userSession.getId()).thenReturn(1L);
+        when(userUtility.returnUserFolderasPath()).thenReturn(userDir);
+        when(fileUtility.walkFsTree(folderDir, true)).thenReturn(List.of(innerFile, folderDir));
+        when(fileUtility.isIgnoredSystemFile("enc_file.txt")).thenReturn(false);
+        when(sqLiteDAO.getFolderMetadataFromIdPathAndName(null, "enc_folder", 1L)).thenReturn(parentFolderMetadata);
+        when(sqLiteDAO.getFileMetadataByFolderIdNameAndUserId(5L, "enc_file.txt", 1L)).thenReturn(innerFileMetadata);
+        when(fileUtility.getFileAndFolderPathsFromFolder(folderDir)).thenReturn(List.of());
+
+        String result = fileSystemService.removeFolder(folder);
+
+        assertEquals(folderDir.toString(), result);
+        assertTrue(Files.notExists(innerFile));
+        assertTrue(Files.notExists(folderDir));
+        verify(sqLiteDAO).deleteFile(innerFileMetadata);
+        verify(sqLiteDAO).deleteFolder(folder);
+    }
+
+    @Test
+    void removeFolder_SystemLeftoverCleanedUp_FolderRemoved() throws Exception {
+        FolderMetadata folder = new FolderMetadata("enc_folder", "0/5");
+        folder.setId(5L);
+
+        Path userDir = Files.createDirectories(tempDir.resolve("user"));
+        Path folderDir = Files.createDirectory(userDir.resolve("enc_folder"));
+        Path systemFile = Files.writeString(folderDir.resolve(".DS_Store"), "");
+
+        when(pathUtility.resolvePathFromIdString("0/5")).thenReturn(Paths.get("user", "enc_folder").toString());
+        when(fileUtility.returnPathIfItExists(Paths.get("user", "enc_folder").toString())).thenReturn(folderDir);
+        when(fileUtility.walkFsTree(folderDir, true)).thenReturn(List.of());
+        when(fileUtility.getFileAndFolderPathsFromFolder(folderDir)).thenReturn(List.of(systemFile));
+        when(fileUtility.isIgnoredSystemFile(".DS_Store")).thenReturn(true);
+
+        String result = fileSystemService.removeFolder(folder);
+
+        assertEquals(folderDir.toString(), result);
+        assertTrue(Files.notExists(systemFile));
+        assertTrue(Files.notExists(folderDir));
+        verify(sqLiteDAO).deleteFolder(folder);
+    }
+
+    @Test
+    void removeFolder_UnmanagedLeftoversPresent_ThrowsException() throws Exception {
+        FolderMetadata folder = new FolderMetadata("enc_folder", "0/5");
+        folder.setId(5L);
+
+        Path userDir = Files.createDirectories(tempDir.resolve("user"));
+        Path folderDir = Files.createDirectory(userDir.resolve("enc_folder"));
+        Path leftover = Files.writeString(folderDir.resolve("unmanaged.txt"), "leftover");
+
+        when(pathUtility.resolvePathFromIdString("0/5")).thenReturn(Paths.get("user", "enc_folder").toString());
+        when(fileUtility.returnPathIfItExists(Paths.get("user", "enc_folder").toString())).thenReturn(folderDir);
+        when(fileUtility.walkFsTree(folderDir, true)).thenReturn(List.of());
+        when(fileUtility.getFileAndFolderPathsFromFolder(folderDir)).thenReturn(List.of(leftover));
+        when(fileUtility.isIgnoredSystemFile("unmanaged.txt")).thenReturn(false);
+
+        assertThrows(java.io.IOException.class,
+                () -> fileSystemService.removeFolder(folder));
+
+        assertTrue(Files.exists(leftover));
+        assertTrue(Files.exists(folderDir));
+        verify(sqLiteDAO, never()).deleteFolder(any(FolderMetadata.class));
+    }
+
+    @Test
+    void removeFolder_SystemLeftoverNotDeleted_ThrowsException() throws Exception {
+        FolderMetadata folder = new FolderMetadata("enc_folder", "0/5");
+        folder.setId(5L);
+
+        Path userDir = Files.createDirectories(tempDir.resolve("user"));
+        Path folderDir = Files.createDirectory(userDir.resolve("enc_folder"));
+        // listed by the (mocked) directory listing but not present on disk,
+        // so Files.deleteIfExists returns false and emptyLeftoversDirectory reports leftovers
+        Path ghostSystemFile = folderDir.resolve("ghost_system.tmp");
+
+        when(pathUtility.resolvePathFromIdString("0/5")).thenReturn(Paths.get("user", "enc_folder").toString());
+        when(fileUtility.returnPathIfItExists(Paths.get("user", "enc_folder").toString())).thenReturn(folderDir);
+        when(fileUtility.walkFsTree(folderDir, true)).thenReturn(List.of());
+        when(fileUtility.getFileAndFolderPathsFromFolder(folderDir)).thenReturn(List.of(ghostSystemFile));
+        when(fileUtility.isIgnoredSystemFile("ghost_system.tmp")).thenReturn(true);
+
+        java.io.IOException exception = assertThrows(java.io.IOException.class,
+                () -> fileSystemService.removeFolder(folder));
+
+        assertEquals("Failed to empty parent folder", exception.getMessage());
+        assertTrue(Files.exists(folderDir));
+        verify(sqLiteDAO, never()).deleteFolder(any(FolderMetadata.class));
+    }
 }

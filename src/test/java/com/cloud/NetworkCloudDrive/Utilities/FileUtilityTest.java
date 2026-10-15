@@ -246,4 +246,119 @@ class FileUtilityTest {
         List<Path> emptyList = List.of();
         assertFalse(fileUtility.checkDuplicate(emptyList, "test.txt"));
     }
+
+    @Test
+    void checkDuplicate_whenFileExistsWithMatchingDecodedName_ReturnsTrue() {
+        String encodedName = "encoded123";
+        String filename = "myfile.txt";
+        when(encodingUtility.decodedBase32SplitArray(encodedName)).thenReturn(new String[]{"1", filename, "99"});
+
+        List<Path> files = List.of(tempDir.resolve(encodedName));
+
+        assertTrue(fileUtility.checkDuplicate(files, filename));
+    }
+
+    @Test
+    void checkDuplicate_whenFileExistsWithDifferentName_ReturnsFalse() {
+        String encodedName = "encoded123";
+        when(encodingUtility.decodedBase32SplitArray(encodedName)).thenReturn(new String[]{"1", "other.txt", "99"});
+
+        List<Path> files = List.of(tempDir.resolve(encodedName));
+
+        assertFalse(fileUtility.checkDuplicate(files, "myfile.txt"));
+    }
+
+    @Test
+    void checkDuplicate_whenFileIsIgnored_ReturnsFalse() {
+        List<Path> files = List.of(tempDir.resolve(".DS_Store"));
+
+        assertFalse(fileUtility.checkDuplicate(files, "anything.txt"));
+        verifyNoInteractions(encodingUtility);
+    }
+
+    @Test
+    void getFileAndFolderPathsFromFolder_ReturnsPaths() throws IOException {
+        Files.createFile(tempDir.resolve("file1.txt"));
+        Files.createDirectory(tempDir.resolve("subdir"));
+        Files.createFile(tempDir.resolve("subdir").resolve("file2.txt"));
+
+        List<Path> result = fileUtility.getFileAndFolderPathsFromFolder(tempDir);
+
+        assertEquals(2, result.size());
+    }
+
+    @Test
+    void walkFsTree_forward_ReturnsAllPathsIncludingRoot() throws IOException {
+        Files.createDirectory(tempDir.resolve("dir"));
+        Files.createFile(tempDir.resolve("dir").resolve("f.txt"));
+        Files.createFile(tempDir.resolve("root.txt"));
+
+        List<Path> result = fileUtility.walkFsTree(tempDir, false);
+
+        assertTrue(result.size() >= 3);
+    }
+
+    @Test
+    void walkFsTree_reverse_ReturnsReversedOrder() throws IOException {
+        Files.createDirectory(tempDir.resolve("dir"));
+        Files.createFile(tempDir.resolve("dir").resolve("f.txt"));
+        Files.createFile(tempDir.resolve("root.txt"));
+
+        List<Path> result = fileUtility.walkFsTree(tempDir, true);
+
+        assertTrue(result.size() >= 3);
+    }
+
+    @Test
+    void returnPathIfItsNotADuplicate_whenNotDuplicate_ReturnsPath() throws IOException {
+        Path result = fileUtility.returnPathIfItsNotADuplicate(tempDir.resolve("newfile.txt").toString());
+
+        assertEquals(tempDir.resolve("newfile.txt"), result);
+    }
+
+    @Test
+    void returnPathIfItsNotADuplicate_whenFileExists_ThrowsFileNotFoundException() throws IOException {
+        Files.createFile(tempDir.resolve("existing.txt"));
+
+        assertThrows(java.io.FileNotFoundException.class,
+                () -> fileUtility.returnPathIfItsNotADuplicate(tempDir.resolve("existing.txt").toString()));
+    }
+
+    @Test
+    void returnPathIfItsNotADuplicate_whenFolderExists_ThrowsFileNotFoundException() throws IOException {
+        Files.createDirectory(tempDir.resolve("existingdir"));
+
+        assertThrows(java.io.FileNotFoundException.class,
+                () -> fileUtility.returnPathIfItsNotADuplicate(tempDir.resolve("existingdir").toString()));
+    }
+
+    @Test
+    void returnFileIfItExists_whenExists_ReturnsFile() throws IOException {
+        when(pathUtility.getFullPath("path/file.txt")).thenReturn(tempDir.resolve("file.txt"));
+        Files.createFile(tempDir.resolve("file.txt"));
+
+        java.io.File result = fileUtility.returnFileIfItExists("path/file.txt");
+
+        assertNotNull(result);
+        assertTrue(result.exists());
+    }
+
+    @Test
+    void returnPathIfItExists_whenExists_ReturnsPath() throws IOException {
+        when(pathUtility.getFullPath("path/file.txt")).thenReturn(tempDir.resolve("file.txt"));
+        Files.createFile(tempDir.resolve("file.txt"));
+
+        Path result = fileUtility.returnPathIfItExists("path/file.txt");
+
+        assertNotNull(result);
+        assertTrue(Files.exists(result));
+    }
+
+    @Test
+    void returnPathIfItExists_whenNotExists_ThrowsFileNotFoundException() {
+        when(pathUtility.getFullPath("path/missing.txt")).thenReturn(tempDir.resolve("missing.txt"));
+
+        assertThrows(java.io.FileNotFoundException.class,
+                () -> fileUtility.returnPathIfItExists("path/missing.txt"));
+    }
 }

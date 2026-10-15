@@ -17,6 +17,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
@@ -192,5 +194,122 @@ class ThumbnailServiceTest {
         verify(sqLiteDAO).deleteAllThumbnails(anyList());
         assertFalse(f1.isHasThumbnail());
         assertFalse(f2.isHasThumbnail());
+    }
+
+    @Test
+    void deleteThumbnailByThumbnailID_DeletesFromDBAndDisk() throws Exception {
+        ThumbnailMetadata metadata = new ThumbnailMetadata("thumb.jpg", 1L, "image/jpeg", 512L, 10L, true);
+        metadata.setId(7L);
+        FileMetadata fileMetadata = new FileMetadata("test.txt", 1L, 1L, "text/plain", 100L);
+        fileMetadata.setId(10L);
+        fileMetadata.setHasThumbnail(true);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.queryThumbnailMetadata(7L, 1L)).thenReturn(metadata);
+        when(imageUtility.getThumbnailPath(true)).thenReturn(tempDir.resolve("portrait"));
+        when(sqLiteDAO.queryFileMetadata(10L, 1L)).thenReturn(fileMetadata);
+
+        Path thumbDir = Files.createDirectories(tempDir.resolve("portrait"));
+        Path thumbFile = Files.writeString(thumbDir.resolve("thumb.jpg"), "data");
+
+        thumbnailService.deleteThumbnailByThumbnailID(7L);
+
+        verify(sqLiteDAO).deleteThumbnail(metadata);
+        assertTrue(Files.notExists(thumbFile));
+        verify(sqLiteDAO).saveFile(fileMetadata);
+        assertFalse(fileMetadata.isHasThumbnail());
+    }
+
+    @Test
+    void deleteThumbnailByThumbnailID_WhenThumbnailFileMissing_ThrowsException() throws Exception {
+        ThumbnailMetadata metadata = new ThumbnailMetadata("missing.jpg", 1L, "image/jpeg", 512L, 10L, true);
+        metadata.setId(7L);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.queryThumbnailMetadata(7L, 1L)).thenReturn(metadata);
+        when(imageUtility.getThumbnailPath(true)).thenReturn(tempDir.resolve("portrait"));
+
+        assertThrows(java.io.FileNotFoundException.class,
+                () -> thumbnailService.deleteThumbnailByThumbnailID(7L));
+
+        verify(sqLiteDAO).deleteThumbnail(metadata);
+    }
+
+    @Test
+    void nuclearDeleteAllThumbnails_DeletesAllAndResetsFlags() throws Exception {
+        ThumbnailMetadata t1 = new ThumbnailMetadata("t1.jpg", 1L, "image/jpeg", 100L, 1L, true);
+        FileMetadata f1 = new FileMetadata("f1.txt", 1L, 1L, "text/plain", 50L);
+        f1.setId(1L);
+        f1.setHasThumbnail(true);
+        FileMetadata f2 = new FileMetadata("f2.txt", 1L, 1L, "text/plain", 60L);
+        f2.setId(2L);
+        f2.setHasThumbnail(true);
+
+        DeletionResults deletionResults = new DeletionResults();
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.findAllThumbnailsByUserID(1L)).thenReturn(List.of(t1));
+        when(imageUtility.getThumbnailPath()).thenReturn(tempDir.resolve(".thumbnails"));
+        when(fileUtility.deleteFolders(any(Path.class))).thenReturn(deletionResults);
+        when(sqLiteDAO.getAllFilesBelongingToUser(1L)).thenReturn(List.of(f1, f2));
+
+        DeletionResults result = thumbnailService.nuclearDeleteAllThumbnails();
+
+        assertSame(deletionResults, result);
+        verify(sqLiteDAO).deleteAllThumbnails(List.of(t1));
+        verify(fileUtility).deleteFolders(any(Path.class));
+        verify(sqLiteDAO).saveAllFiles(anyList());
+        assertFalse(f1.isHasThumbnail());
+        assertFalse(f2.isHasThumbnail());
+    }
+
+    @Test
+    void deleteOnlyFromIO_DeletesThumbnailEntriesAndFiles() throws Exception {
+        ThumbnailMetadata t1 = new ThumbnailMetadata("t1.jpg", 1L, "image/jpeg", 100L, 1L, true);
+        DeletionResults deletionResults = new DeletionResults();
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.findAllThumbnailsByUserID(1L)).thenReturn(List.of(t1));
+        when(imageUtility.getThumbnailPath()).thenReturn(tempDir.resolve(".thumbnails"));
+        when(fileUtility.deleteFolders(any(Path.class))).thenReturn(deletionResults);
+
+        DeletionResults result = thumbnailService.deleteOnlyFromIO();
+
+        assertSame(deletionResults, result);
+        verify(sqLiteDAO).deleteAllThumbnails(List.of(t1));
+        verify(fileUtility).deleteFolders(any(Path.class));
+        verify(sqLiteDAO, never()).getAllFilesBelongingToUser(anyLong());
+        verify(sqLiteDAO, never()).saveAllFiles(anyList());
+    }
+
+    @Test
+    void createThumbnailOfAnImage_ValidImage_ReturnsResizedThumbnail() throws Exception {
+        BufferedImage sourceImage = new BufferedImage(8, 6, BufferedImage.TYPE_INT_RGB);
+        Path imageDir = Files.createDirectories(tempDir.resolve("images"));
+        Path sourceFile = imageDir.resolve("source.png");
+        ImageIO.write(sourceImage, "png", sourceFile.toFile());
+
+        when(pathUtility.getBasePathToString()).thenReturn(tempDir.toString());
+
+        BufferedImage result =
+                thumbnailService.createThumbnailOfAnImage(Path.of("images", "source.png"), 4, 3);
+
+        assertNotNull(result);
+        assertEquals(4, result.getWidth());
+        assertEquals(3, result.getHeight());
+    }
+
+    @Test
+    void createThumbnailOfAnImage_NullSource_ThrowsException() {
+        assertThrows(java.io.IOException.class,
+                () -> thumbnailService.createThumbnailOfAnImage(null, 10, 10));
+    }
+
+    @Test
+    void getThumbnail_WhenPathInsideBase_ThrowsSecurityException() throws Exception {
+        when(imageUtility.getThumbnailPath(true)).thenReturn(tempDir.resolve("portrait"));
+        when(pathUtility.getBasePath()).thenReturn(tempDir);
+
+        assertThrows(SecurityException.class,
+                () -> thumbnailService.getThumbnail("thumb.jpg", true));
     }
 }

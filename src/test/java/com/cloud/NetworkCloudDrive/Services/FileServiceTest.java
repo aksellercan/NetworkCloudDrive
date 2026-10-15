@@ -1,7 +1,9 @@
 package com.cloud.NetworkCloudDrive.Services;
 
+import com.cloud.NetworkCloudDrive.Models.DTO.JobDTO;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
+import com.cloud.NetworkCloudDrive.Models.Jobs.ThumbnailJob;
 import com.cloud.NetworkCloudDrive.Persistence.SQLiteDAO;
 import com.cloud.NetworkCloudDrive.Properties.ThumbnailProperties;
 import com.cloud.NetworkCloudDrive.Repositories.Maintenance.ThumbnailRepository;
@@ -368,5 +370,132 @@ class FileServiceTest {
 
         assertThrows(SecurityException.class,
                 () -> fileService.createFolder("../invalid", 5L));
+    }
+
+    @Test
+    void markFile_MarkTrue_SetsMarkedAndSaves() throws Exception {
+        FileMetadata file = new FileMetadata("enc.txt", 1L, 1L, "text/plain", 10L);
+        file.setId(10L);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.queryFileMetadata(10L, 1L)).thenReturn(file);
+        when(sqLiteDAO.saveFile(any(FileMetadata.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        fileService.markFile(true, 10L);
+
+        assertTrue(file.isMarked());
+        verify(sqLiteDAO).queryFileMetadata(10L, 1L);
+        verify(sqLiteDAO).saveFile(file);
+    }
+
+    @Test
+    void markFile_MarkFalse_ClearsMarkedAndSaves() throws Exception {
+        FileMetadata file = new FileMetadata("enc.txt", 1L, 1L, "text/plain", 10L);
+        file.setId(10L);
+        file.setMarked(true);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.queryFileMetadata(10L, 1L)).thenReturn(file);
+        when(sqLiteDAO.saveFile(any(FileMetadata.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        fileService.markFile(false, 10L);
+
+        assertFalse(file.isMarked());
+        verify(sqLiteDAO).saveFile(file);
+    }
+
+    @Test
+    void markFolder_MarkTrue_SetsMarkedAndSaves() throws Exception {
+        FolderMetadata folder = new FolderMetadata("enc_folder", "0/5");
+        folder.setId(5L);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.queryFolderMetadata(5L, 1L)).thenReturn(folder);
+        when(sqLiteDAO.saveFolder(any(FolderMetadata.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        fileService.markFolder(true, 5L);
+
+        assertTrue(folder.isMarked());
+        verify(sqLiteDAO).queryFolderMetadata(5L, 1L);
+        verify(sqLiteDAO).saveFolder(folder);
+    }
+
+    @Test
+    void markFolder_MarkFalse_ClearsMarkedAndSaves() throws Exception {
+        FolderMetadata folder = new FolderMetadata("enc_folder", "0/5");
+        folder.setId(5L);
+        folder.setMarked(true);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.queryFolderMetadata(5L, 1L)).thenReturn(folder);
+        when(sqLiteDAO.saveFolder(any(FolderMetadata.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        fileService.markFolder(false, 5L);
+
+        assertFalse(folder.isMarked());
+        verify(sqLiteDAO).saveFolder(folder);
+    }
+
+    @Test
+    void uploadFiles_WhenAllowedImageFormat_QueuesThumbnailJob() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("files", "photo.png", "image/png", "png bytes".getBytes());
+        MockMultipartFile[] files = new MockMultipartFile[]{file};
+        String encodedFileName = encode(1, "photo.png", 1);
+
+        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
+        when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of());
+        when(pathUtility.isFilenameAllowed("photo.png")).thenReturn(true);
+        when(pathUtility.isFilenameAllowed(encodedFileName)).thenReturn(true);
+        when(encodingUtility.encodeBase32FileName(anyLong(), eq("photo.png"), anyLong())).thenReturn(encodedFileName);
+        when(userSession.getId()).thenReturn(1L);
+        when(pathUtility.getBasePath()).thenReturn(tempDir);
+        when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
+        when(thumbnailProperties.isAllowedImageFormat("image/png")).thenReturn(true);
+
+        doAnswer(invocation -> {
+            FileMetadata m = invocation.getArgument(0);
+            m.setId(1L);
+            return null;
+        }).when(sqLiteDAO).persistObjects(any());
+        doAnswer(invocation -> invocation.getArgument(0)).when(sqLiteDAO).saveFile(any());
+
+        Map<String, ?> result = fileService.uploadFiles(files, "user/folder", 1L);
+
+        assertEquals(1, result.get("uploaded_file_count"));
+        assertTrue(result.containsKey("created_jobs"));
+        List<JobDTO> createdJobs = (List<JobDTO>) result.get("created_jobs");
+        assertEquals(1, createdJobs.size());
+        assertNotNull(createdJobs.get(0).getUUID());
+        verify(sequentialJobExecutor).queueJobs(any(ThumbnailJob.class));
+    }
+
+    @Test
+    void uploadFiles_WhenDisallowedFormat_CreatesNoJobs() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("files", "doc.pdf", "application/pdf", "pdf bytes".getBytes());
+        MockMultipartFile[] files = new MockMultipartFile[]{file};
+        String encodedFileName = encode(1, "doc.pdf", 1);
+
+        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
+        when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of());
+        when(pathUtility.isFilenameAllowed("doc.pdf")).thenReturn(true);
+        when(pathUtility.isFilenameAllowed(encodedFileName)).thenReturn(true);
+        when(encodingUtility.encodeBase32FileName(anyLong(), eq("doc.pdf"), anyLong())).thenReturn(encodedFileName);
+        when(userSession.getId()).thenReturn(1L);
+        when(pathUtility.getBasePath()).thenReturn(tempDir);
+        when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
+        when(thumbnailProperties.isAllowedImageFormat("application/pdf")).thenReturn(false);
+
+        doAnswer(invocation -> {
+            FileMetadata m = invocation.getArgument(0);
+            m.setId(1L);
+            return null;
+        }).when(sqLiteDAO).persistObjects(any());
+        doAnswer(invocation -> invocation.getArgument(0)).when(sqLiteDAO).saveFile(any());
+
+        Map<String, ?> result = fileService.uploadFiles(files, "user/folder", 1L);
+
+        assertEquals(1, result.get("uploaded_file_count"));
+        assertFalse(result.containsKey("created_jobs"));
+        verifyNoInteractions(sequentialJobExecutor);
     }
 }
