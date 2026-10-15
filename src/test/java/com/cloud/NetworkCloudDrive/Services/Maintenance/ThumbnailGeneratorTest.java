@@ -101,31 +101,6 @@ class ThumbnailGeneratorTest {
         fileStorageProperties.setBasePath(originalBasePath);
     }
 
-    /**
-     * Deterministic version of the NASA APOD test: the network fetch is stubbed to
-     * return a bundled JPEG fixture (src/test/resources/nasa-apod-test.jpg), so this
-     * never touches api.nasa.gov and cannot flake on network conditions.
-     * The real-network variant lives in {@link NasaApodNetworkTest}.
-     */
-    @Test
-    void nasaApodImage_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        doReturn(Optional.of(loadNasaFixture())).when(testUtility).fetchNasaApodImage();
-
-        Optional<BufferedImage> nasaImage = testUtility.fetchNasaApodImage();
-        Assumptions.assumeTrue(nasaImage.isPresent(),
-                "NASA APOD returned no image, skipping thumbnail test");
-        assertThumbnailGenerated(nasaImage.get());
-    }
-
-    private BufferedImage loadNasaFixture() throws IOException {
-        try (InputStream in = getClass().getResourceAsStream("/nasa-apod-test.jpg")) {
-            assertNotNull(in, "Fixture nasa-apod-test.jpg must exist on the test classpath");
-            BufferedImage img = ImageIO.read(in);
-            assertNotNull(img, "Fixture nasa-apod-test.jpg must decode as an image");
-            return img;
-        }
-    }
-
     @Test
     void portraitGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
         BufferedImage img = testUtility.gradient(100, 200, Color.RED, Color.BLUE);
