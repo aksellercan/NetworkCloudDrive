@@ -23,11 +23,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doReturn;
 
 @SpringBootTest
 @TestPropertySource(locations = "classpath:/application-test.properties")
@@ -45,7 +48,7 @@ class ThumbnailGeneratorTest {
     @TempDir
     Path tempRoot;
 
-    @Autowired
+    @MockitoSpyBean
     @Lazy
     private TestUtility testUtility;
 
@@ -98,12 +101,29 @@ class ThumbnailGeneratorTest {
         fileStorageProperties.setBasePath(originalBasePath);
     }
 
+    /**
+     * Deterministic version of the NASA APOD test: the network fetch is stubbed to
+     * return a bundled JPEG fixture (src/test/resources/nasa-apod-test.jpg), so this
+     * never touches api.nasa.gov and cannot flake on network conditions.
+     * The real-network variant lives in {@link NasaApodNetworkTest}.
+     */
     @Test
     void nasaApodImage_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
+        doReturn(Optional.of(loadNasaFixture())).when(testUtility).fetchNasaApodImage();
+
         Optional<BufferedImage> nasaImage = testUtility.fetchNasaApodImage();
         Assumptions.assumeTrue(nasaImage.isPresent(),
                 "NASA APOD returned no image, skipping thumbnail test");
         assertThumbnailGenerated(nasaImage.get());
+    }
+
+    private BufferedImage loadNasaFixture() throws IOException {
+        try (InputStream in = getClass().getResourceAsStream("/nasa-apod-test.jpg")) {
+            assertNotNull(in, "Fixture nasa-apod-test.jpg must exist on the test classpath");
+            BufferedImage img = ImageIO.read(in);
+            assertNotNull(img, "Fixture nasa-apod-test.jpg must decode as an image");
+            return img;
+        }
     }
 
     @Test
@@ -138,7 +158,10 @@ class ThumbnailGeneratorTest {
 
         String fileName = "test_image.jpg";
         Path imageFile = userFolder.resolve(fileName);
-        ImageIO.write(source, "jpg", imageFile.toFile());
+        boolean written = ImageIO.write(source, "jpg", imageFile.toFile());
+        assertTrue(written, "Source image must be writable as jpg, otherwise the later move would fail");
+        assertTrue(Files.exists(imageFile) && Files.size(imageFile) > 0,
+                "Written image file must exist and be non-empty at " + imageFile);
 
         FileMetadata fileMetadata = new FileMetadata(fileName, 0L, userId, "image/jpeg", (long) width * height * 3);
         fileMetadata = sqLiteDAO.saveFile(fileMetadata);
