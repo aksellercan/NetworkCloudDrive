@@ -13,6 +13,7 @@ import com.cloud.NetworkCloudDrive.TestUtility;
 import com.cloud.NetworkCloudDrive.Utilities.ImageUtility;
 import com.cloud.NetworkCloudDrive.Utilities.UserUtility;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.test.context.TestPropertySource;
 
 import javax.imageio.ImageIO;
@@ -42,6 +44,10 @@ class ThumbnailGeneratorTest {
 
     @TempDir
     Path tempRoot;
+
+    @Autowired
+    @Lazy
+    private TestUtility testUtility;
 
     @Autowired
     private ThumbnailService thumbnailService;
@@ -94,22 +100,21 @@ class ThumbnailGeneratorTest {
 
     @Test
     void nasaApodImage_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        Optional<BufferedImage> nasaImage = TestUtility.fetchNasaApodImage();
-        if (nasaImage.isEmpty()) {
-            return;
-        }
+        Optional<BufferedImage> nasaImage = testUtility.fetchNasaApodImage();
+        Assumptions.assumeTrue(nasaImage.isPresent(),
+                "NASA APOD returned no image, skipping thumbnail test");
         assertThumbnailGenerated(nasaImage.get());
     }
 
     @Test
     void portraitGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        BufferedImage img = TestUtility.gradient(100, 200, Color.RED, Color.BLUE);
+        BufferedImage img = testUtility.gradient(100, 200, Color.RED, Color.BLUE);
         assertThumbnailGenerated(img);
     }
 
     @Test
     void landscapeGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        BufferedImage img = TestUtility.gradient(200, 100, Color.BLUE, Color.GREEN);
+        BufferedImage img = testUtility.gradient(200, 100, Color.BLUE, Color.GREEN);
         assertThumbnailGenerated(img);
     }
 
@@ -122,7 +127,7 @@ class ThumbnailGeneratorTest {
 
     @Test
     void squareGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        BufferedImage img = TestUtility.gradient(100, 100, Color.GREEN, Color.RED);
+        BufferedImage img = testUtility.gradient(100, 100, Color.GREEN, Color.RED);
         assertThumbnailGenerated(img);
     }
 
