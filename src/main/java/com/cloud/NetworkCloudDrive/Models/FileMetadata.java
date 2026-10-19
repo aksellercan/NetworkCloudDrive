@@ -38,9 +38,21 @@ public class FileMetadata {
     @ColumnDefault("false")
     private boolean marked = false;
 
+    private Instant markDate;
+
     public FileMetadata(String name, Long folderId, Long userid, String mimiType, Long size) {
         this.name = name;
         this.folderId = folderId;
+        this.userid = userid;
+        this.mimiType = mimiType;
+        this.size = size;
+    }
+
+    public FileMetadata(String name, Long folderId, Long userid, String mimiType, Instant markDate, boolean marked, Long size) {
+        this.name = name;
+        this.folderId = folderId;
+        this.markDate = markDate;
+        this.marked = marked;
         this.userid = userid;
         this.mimiType = mimiType;
         this.size = size;
@@ -59,6 +71,7 @@ public class FileMetadata {
         this.createdAt = fileMetadata.createdAt;
         this.hasThumbnail = fileMetadata.hasThumbnail;
         this.lastUpdated = fileMetadata.lastUpdated;
+        this.markDate = fileMetadata.markDate;
         this.marked = fileMetadata.marked;
     }
 
@@ -146,6 +159,14 @@ public class FileMetadata {
         this.marked = marked;
     }
 
+    public Instant getMarkDate() {
+        return markDate;
+    }
+
+    public void setMarkDate() {
+        this.markDate = Instant.now();
+    }
+
     @Override
     public String toString() {
         return "FileMetadata{" +
@@ -159,6 +180,7 @@ public class FileMetadata {
                 ", hasThumbnail=" + hasThumbnail +
                 ", lastUpdated=" + lastUpdated +
                 ", marked=" + marked +
+                ", markDate=" + markDate +
                 '}';
     }
 }

@@ -270,6 +270,23 @@ public class FileSystemController {
         }
     }
 
+    @GetMapping(value = "marked", version = "2.0")
+    public @ResponseBody ResponseEntity<?> markedPageable(int page, int size) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(new JSONObjectArrayResponse(
+                            new Object[]{
+                                    fileSystemRepository.collectAllMarkedPageable(pageable),
+                                    pageable
+                            }, "Paged marked Files and Folders"));
+        } catch (Exception e) {
+            logger.error("Failed to list marked, page: {}, size: {}, reason: {}!", page, size, e.getMessage());
+            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(new JSONErrorResponse(e, "Failed to display marked Files and Folders"));
+        }
+    }
+
     @GetMapping(value = "recents", version = "1.0")
     public @ResponseBody ResponseEntity<?> listRecents() {
         try {
