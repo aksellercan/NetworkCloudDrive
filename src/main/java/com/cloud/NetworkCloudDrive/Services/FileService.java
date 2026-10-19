@@ -178,6 +178,7 @@ public class FileService implements FileRepository {
     public void markFile(boolean mark, long fileId) throws SQLException {
         FileMetadata fileMetadata = sqLiteDAO.queryFileMetadata(fileId, userSession.getId());
         fileMetadata.setMarked(mark);
+        fileMetadata.setMarkDate();
         FileMetadata result = sqLiteDAO.saveFile(fileMetadata);
         logger.info("{}", result.toString());
     }
@@ -186,6 +187,7 @@ public class FileService implements FileRepository {
     public void markFolder(boolean mark, long folderId) throws SQLException {
         FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         folderMetadata.setMarked(mark);
+        folderMetadata.setMarkDate();
         FolderMetadata result = sqLiteDAO.saveFolder(folderMetadata);
         logger.info("{}", result.toString());
     }
