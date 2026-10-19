@@ -19,4 +19,6 @@ public interface SQLiteFolderRepository extends JpaRepository<FolderMetadata, Lo
     Page<FolderMetadata> findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(long userId, Pageable pageable);
 
     List<FolderMetadata> findAllByUseridAndMarked(Long userid, boolean marked);
+
+    Page<FolderMetadata> findAllByUseridAndMarkedOrderByMarkDateDesc(Long userid, boolean marked, Pageable pageable);
 }
