@@ -161,6 +161,12 @@ public class FileSystemService implements FileSystemRepository {
     }
 
     @Override
+    public Map<String, List<?>> collectAllMarkedPageable(Pageable pageable) {
+        return Map.of("files", sqLiteDAO.listAllMarkedFilesPageable(userSession.getId(), true, pageable),
+                "folders", sqLiteDAO.listAllMarkedFoldersPageable(userSession.getId(), true, pageable));
+    }
+
+    @Override
     public Map<String, List<?>> collectAllRecentsPageable(Pageable pageable) {
         return Map.of("files", getRecentFilesPageable(pageable), "folders", getRecentFoldersPageable(pageable));
     }
