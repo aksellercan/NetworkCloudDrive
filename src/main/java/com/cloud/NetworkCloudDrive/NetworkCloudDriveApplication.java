@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cache.annotation.EnableCaching;
 
 @SpringBootApplication
+//default caching behaviour for now
 @EnableCaching
 public class NetworkCloudDriveApplication {
     public static void main(String[] args) {

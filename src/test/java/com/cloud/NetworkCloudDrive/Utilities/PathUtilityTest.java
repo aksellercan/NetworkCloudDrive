@@ -179,4 +179,60 @@ class PathUtilityTest {
 
         assertEquals("user_enc" + File.separator + "parent", result);
     }
+
+    @Test
+    void resolvePathFromIdString_withStringIdPath_ReturnsSystemPath() throws Exception {
+        when(userSession.getId()).thenReturn(1L);
+        when(userSession.getName()).thenReturn("testuser");
+        when(userSession.getMail()).thenReturn("test@example.com");
+        when(encodingUtility.encodeBase32UserFolderName(1L, "testuser", "test@example.com")).thenReturn("user_enc");
+
+        com.cloud.NetworkCloudDrive.Models.FolderMetadata folder1 =
+                new com.cloud.NetworkCloudDrive.Models.FolderMetadata("folder1", "0/1");
+        folder1.setId(1L);
+        com.cloud.NetworkCloudDrive.Models.FolderMetadata folder2 =
+                new com.cloud.NetworkCloudDrive.Models.FolderMetadata("folder2", "0/1/2");
+        folder2.setId(2L);
+
+        when(sqLiteDAO.findAllByIdInSQLFolderMetadata(List.of(0L, 1L, 2L), 1L)).thenReturn(List.of(folder1, folder2));
+
+        String result = pathUtility.resolvePathFromIdString("0/1/2");
+
+        assertEquals("user_enc" + File.separator + "folder1" + File.separator + "folder2", result);
+    }
+
+    @Test
+    void resolvePathFromIdString_withUserDTOAndStringIdPath_ReturnsSystemPath() throws Exception {
+        com.cloud.NetworkCloudDrive.Models.DTO.UserDTO userDTO =
+                new com.cloud.NetworkCloudDrive.Models.DTO.UserDTO(5L, "alice", "alice@example.com");
+        when(encodingUtility.encodeBase32UserFolderName(5L, "alice", "alice@example.com")).thenReturn("alice_enc");
+
+        com.cloud.NetworkCloudDrive.Models.FolderMetadata folder1 =
+                new com.cloud.NetworkCloudDrive.Models.FolderMetadata("docs", "0/10");
+        folder1.setId(10L);
+
+        when(sqLiteDAO.findAllByIdInSQLFolderMetadata(List.of(0L, 10L), 5L)).thenReturn(List.of(folder1));
+
+        String result = pathUtility.resolvePathFromIdString(userDTO, "0/10");
+
+        assertEquals("alice_enc" + File.separator + "docs", result);
+    }
+
+    @Test
+    void getFolderPath_whenFolderIdGreaterThanZero_ReturnsResolvedPath() throws Exception {
+        when(userSession.getId()).thenReturn(2L);
+        when(userSession.getName()).thenReturn("bob");
+        when(userSession.getMail()).thenReturn("bob@example.com");
+        when(encodingUtility.encodeBase32UserFolderName(2L, "bob", "bob@example.com")).thenReturn("bob_enc");
+
+        com.cloud.NetworkCloudDrive.Models.FolderMetadata folder =
+                new com.cloud.NetworkCloudDrive.Models.FolderMetadata("work", "0/7");
+        folder.setId(7L);
+        when(sqLiteDAO.queryFolderMetadata(7L, 2L)).thenReturn(folder);
+        when(sqLiteDAO.findAllByIdInSQLFolderMetadata(List.of(0L, 7L), 2L)).thenReturn(List.of(folder));
+
+        String result = pathUtility.getFolderPath(7L);
+
+        assertEquals("bob_enc" + File.separator + "work", result);
+    }
 }

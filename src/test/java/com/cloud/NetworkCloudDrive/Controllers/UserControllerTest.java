@@ -4,6 +4,7 @@ import com.cloud.NetworkCloudDrive.Models.DTO.CurrentUserDTO;
 import com.cloud.NetworkCloudDrive.Models.DTO.UpdateUserDTO;
 import com.cloud.NetworkCloudDrive.Models.DTO.UserLoginRegisterDTO;
 import com.cloud.NetworkCloudDrive.Models.Enum.UserRole;
+import com.cloud.NetworkCloudDrive.Models.Response.JSONErrorResponse;
 import com.cloud.NetworkCloudDrive.Models.UserEntity;
 import com.cloud.NetworkCloudDrive.Persistence.SQLiteDAO;
 import com.cloud.NetworkCloudDrive.Repositories.UserRepository;
@@ -16,12 +17,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -207,5 +210,96 @@ class UserControllerTest {
         ResponseEntity<?> response = controller.updateName(dto);
 
         assertEquals(400, response.getStatusCode().value());
+    }
+
+    @Test
+    void updateMail_UserLookupFails_ReturnsBadRequest() throws Exception {
+        UpdateUserDTO dto = new UpdateUserDTO();
+        dto.setUpdate("new@test.com");
+
+        when(userSession.getMail()).thenReturn("old@test.com");
+        when(sqLiteDAO.findUserByMail("old@test.com")).thenThrow(new RuntimeException("User not found"));
+
+        ResponseEntity<?> response = controller.updateMail(dto);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertInstanceOf(JSONErrorResponse.class, response.getBody());
+        JSONErrorResponse body = (JSONErrorResponse) response.getBody();
+        assertEquals(false, body.isSuccess());
+        assertEquals(RuntimeException.class.getName(), body.getException_type());
+        assertEquals("User not found", body.getException_message());
+        assertEquals("Failed to update user mail, reason: User not found", body.getMessage());
+    }
+
+    @Test
+    void updateMail_UpdateFails_ReturnsBadRequest() throws Exception {
+        UpdateUserDTO dto = new UpdateUserDTO();
+        dto.setUpdate("new@test.com");
+
+        when(userSession.getMail()).thenReturn("old@test.com");
+        UserEntity user = new UserEntity("testuser", "old@test.com", "hash", UserRole.GUEST);
+        user.setId(1L);
+        when(sqLiteDAO.findUserByMail("old@test.com")).thenReturn(user);
+        when(userRepository.updateMail(user, "new@test.com")).thenThrow(new RuntimeException("Mail already in use"));
+
+        ResponseEntity<?> response = controller.updateMail(dto);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertInstanceOf(JSONErrorResponse.class, response.getBody());
+        JSONErrorResponse body = (JSONErrorResponse) response.getBody();
+        assertEquals("Failed to update user mail, reason: Mail already in use", body.getMessage());
+    }
+
+    @Test
+    void updatePassword_UserLookupFails_ReturnsBadRequest() throws Exception {
+        UpdateUserDTO dto = new UpdateUserDTO();
+        dto.setUpdate("newPass123");
+
+        when(userSession.getMail()).thenReturn("test@test.com");
+        when(sqLiteDAO.findUserByMail("test@test.com")).thenThrow(new RuntimeException("User not found"));
+
+        ResponseEntity<?> response = controller.updatePassword(dto);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertInstanceOf(JSONErrorResponse.class, response.getBody());
+        JSONErrorResponse body = (JSONErrorResponse) response.getBody();
+        assertEquals(false, body.isSuccess());
+        assertEquals("Failed to update user password, reason: User not found", body.getMessage());
+    }
+
+    @Test
+    void updatePassword_UpdateFails_ReturnsBadRequest() throws Exception {
+        UpdateUserDTO dto = new UpdateUserDTO();
+        dto.setUpdate("newPass123");
+
+        when(userSession.getMail()).thenReturn("test@test.com");
+        UserEntity user = new UserEntity("testuser", "test@test.com", "old_hash", UserRole.GUEST);
+        user.setId(1L);
+        when(sqLiteDAO.findUserByMail("test@test.com")).thenReturn(user);
+        when(userRepository.updatePassword(user, "newPass123")).thenThrow(new RuntimeException("Password rejected"));
+
+        ResponseEntity<?> response = controller.updatePassword(dto);
+
+        assertEquals(400, response.getStatusCode().value());
+        assertInstanceOf(JSONErrorResponse.class, response.getBody());
+        JSONErrorResponse body = (JSONErrorResponse) response.getBody();
+        assertEquals("Failed to update user password, reason: Password rejected", body.getMessage());
+    }
+
+    @Test
+    void info_UserNotFound_ReturnsBadRequest() throws Exception {
+        when(userSession.getMail()).thenReturn("missing@test.com");
+        when(userRepository.currentUserDetails("missing@test.com"))
+                .thenThrow(new UsernameNotFoundException("No user with mail missing@test.com"));
+
+        ResponseEntity<?> response = controller.info();
+
+        assertEquals(400, response.getStatusCode().value());
+        assertInstanceOf(JSONErrorResponse.class, response.getBody());
+        JSONErrorResponse body = (JSONErrorResponse) response.getBody();
+        assertEquals(false, body.isSuccess());
+        assertEquals(UsernameNotFoundException.class.getName(), body.getException_type());
+        assertEquals("No user with mail missing@test.com", body.getException_message());
+        assertEquals("Failed to get user details, reason: No user with mail missing@test.com", body.getMessage());
     }
 }

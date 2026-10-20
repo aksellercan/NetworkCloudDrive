@@ -13,6 +13,7 @@ import com.cloud.NetworkCloudDrive.TestUtility;
 import com.cloud.NetworkCloudDrive.Utilities.ImageUtility;
 import com.cloud.NetworkCloudDrive.Utilities.UserUtility;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -20,12 +21,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -34,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.doReturn;
 
 @SpringBootTest
 @TestPropertySource(locations = "classpath:/application-test.properties")
@@ -42,6 +47,10 @@ class ThumbnailGeneratorTest {
 
     @TempDir
     Path tempRoot;
+
+    @MockitoSpyBean
+    @Lazy
+    private TestUtility testUtility;
 
     @Autowired
     private ThumbnailService thumbnailService;
@@ -93,23 +102,14 @@ class ThumbnailGeneratorTest {
     }
 
     @Test
-    void nasaApodImage_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        Optional<BufferedImage> nasaImage = TestUtility.fetchNasaApodImage();
-        if (nasaImage.isEmpty()) {
-            return;
-        }
-        assertThumbnailGenerated(nasaImage.get());
-    }
-
-    @Test
     void portraitGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        BufferedImage img = TestUtility.gradient(100, 200, Color.RED, Color.BLUE);
+        BufferedImage img = testUtility.gradient(100, 200, Color.RED, Color.BLUE);
         assertThumbnailGenerated(img);
     }
 
     @Test
     void landscapeGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        BufferedImage img = TestUtility.gradient(200, 100, Color.BLUE, Color.GREEN);
+        BufferedImage img = testUtility.gradient(200, 100, Color.BLUE, Color.GREEN);
         assertThumbnailGenerated(img);
     }
 
@@ -122,7 +122,7 @@ class ThumbnailGeneratorTest {
 
     @Test
     void squareGradient_thumbnailGenerated() throws IOException, ExecutionException, InterruptedException {
-        BufferedImage img = TestUtility.gradient(100, 100, Color.GREEN, Color.RED);
+        BufferedImage img = testUtility.gradient(100, 100, Color.GREEN, Color.RED);
         assertThumbnailGenerated(img);
     }
 
@@ -133,7 +133,10 @@ class ThumbnailGeneratorTest {
 
         String fileName = "test_image.jpg";
         Path imageFile = userFolder.resolve(fileName);
-        ImageIO.write(source, "jpg", imageFile.toFile());
+        boolean written = ImageIO.write(source, "jpg", imageFile.toFile());
+        assertTrue(written, "Source image must be writable as jpg, otherwise the later move would fail");
+        assertTrue(Files.exists(imageFile) && Files.size(imageFile) > 0,
+                "Written image file must exist and be non-empty at " + imageFile);
 
         FileMetadata fileMetadata = new FileMetadata(fileName, 0L, userId, "image/jpeg", (long) width * height * 3);
         fileMetadata = sqLiteDAO.saveFile(fileMetadata);
