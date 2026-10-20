@@ -39,6 +39,7 @@ public class FileMetadata extends MetadataSuperClass {
         this.hasThumbnail = fileMetadata.hasThumbnail;
         setLastUpdated(fileMetadata.getLastUpdated());
         setMarked(fileMetadata.isMarked());
+        setMarkedAt(fileMetadata.getMarkedAt());
     }
 
     public Long getFolderId() {

@@ -26,6 +26,7 @@ public class FolderMetadata extends MetadataSuperClass {
         setCreatedAt(folderMetadata.getCreatedAt());
         setLastUpdated(folderMetadata.getLastUpdated());
         setMarked(folderMetadata.isMarked());
+        setMarkedAt(folderMetadata.getMarkedAt());
     }
 
     public String getPath() {

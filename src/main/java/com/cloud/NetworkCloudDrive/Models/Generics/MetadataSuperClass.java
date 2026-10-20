@@ -31,16 +31,19 @@ public class MetadataSuperClass {
     @ColumnDefault("false")
     private boolean marked = false;
 
+    private Instant markedAt;
+
     public MetadataSuperClass() {
     }
 
-    public MetadataSuperClass(Long id, String name, Long userid, Instant createdAt, Instant lastUpdated, boolean marked) {
+    public MetadataSuperClass(Long id, String name, Long userid, Instant createdAt, Instant lastUpdated, boolean marked, Instant markedAt) {
         this.id = id;
         this.name = name;
         this.userid = userid;
         this.createdAt = createdAt;
         this.lastUpdated = lastUpdated;
         this.marked = marked;
+        this.markedAt = markedAt;
     }
 
     public Long getId() {
@@ -93,6 +96,18 @@ public class MetadataSuperClass {
 
     public void setMarked(boolean marked) {
         this.marked = marked;
+    }
+
+    public Instant getMarkedAt() {
+        return markedAt;
+    }
+
+    public void setMarkedAt(Instant markedAt) {
+        this.markedAt = markedAt;
+    }
+
+    public void updateMarkedAt() {
+        this.markedAt = Instant.now();
     }
 
     /**
