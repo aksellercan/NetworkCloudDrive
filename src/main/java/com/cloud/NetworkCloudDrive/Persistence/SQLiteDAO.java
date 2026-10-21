@@ -432,7 +432,8 @@ public class SQLiteDAO {
 
     @Transactional
     public List<FileListItemDTO> listAllMarkedFilesPageable(long userId, boolean marked, Pageable pageable) {
-        Page<FileMetadata> fileMetadataPage = sqLiteFileRepository.findAllByUseridAndMarkedOrderByMarkDateDesc(userId, marked, pageable);
+//        Page<FileMetadata> fileMetadataPage = sqLiteFileRepository.findAllByUseridAndMarkedOrderByMarkDateDesc(userId, marked, pageable);
+        Page<FileMetadata> fileMetadataPage = sqLiteFileRepository.findAllByUseridAndMarkedOrderByMarkedAtDesc(userId, marked, pageable);
         List<FileListItemDTO> fileListItemDTOS = new ArrayList<>();
         for (FileMetadata fileMetadata : fileMetadataPage) {
             FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
@@ -446,7 +447,8 @@ public class SQLiteDAO {
 
     @Transactional
     public List<FolderListItemDTO> listAllMarkedFoldersPageable(long userId, boolean marked, Pageable pageable) {
-        Page<FolderMetadata> folderMetadataPage = sqLiteFolderRepository.findAllByUseridAndMarkedOrderByMarkDateDesc(userId, marked, pageable);
+//        Page<FolderMetadata> folderMetadataPage = sqLiteFolderRepository.findAllByUseridAndMarkedOrderByMarkDateDesc(userId, marked, pageable);
+        Page<FolderMetadata> folderMetadataPage = sqLiteFolderRepository.findAllByUseridAndMarkedOrderByMarkedAtDesc(userId, marked, pageable);
         List<FolderListItemDTO> folderListItemDTOS = new ArrayList<>();
         for (FolderMetadata folderMetadata : folderMetadataPage) {
             FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);

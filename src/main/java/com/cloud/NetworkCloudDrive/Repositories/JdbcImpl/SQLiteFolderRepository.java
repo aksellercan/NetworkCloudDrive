@@ -22,5 +22,5 @@ public interface SQLiteFolderRepository extends JpaRepository<FolderMetadata, Lo
 
     List<FolderMetadata> findAllByUseridAndMarked(Long userid, boolean marked);
 
-    Page<FolderMetadata> findAllByUseridAndMarkedOrderByMarkDateDesc(Long userid, boolean marked, Pageable pageable);
+    Page<FolderMetadata> findAllByUseridAndMarkedOrderByMarkedAtDesc(Long userid, boolean marked, Pageable pageable);
 }

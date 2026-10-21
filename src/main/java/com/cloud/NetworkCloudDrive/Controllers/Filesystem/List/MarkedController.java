@@ -30,7 +30,9 @@ public class MarkedController {
     public ResponseEntity<Map<String, Map<String, List<?>>>> markedFilesystem(
             @RequestParam(required = false) SortListEnum sort,
             @RequestParam(required = false) FilterListEnum filter,
-            @RequestParam(required = false) String filterQuery) {
+            @RequestParam(required = false) String filterQuery,
+            @RequestParam(required = false) int page,
+            @RequestParam(required = false) int size) {
         String message = "Marked Files and Folders";
         if (filter != null) {
             switch (filter) {
@@ -60,20 +62,13 @@ public class MarkedController {
 
     @GetMapping(version = "2.0")
     public @ResponseBody ResponseEntity<?> listMarked(int page, int size) {
-        try {
-            Pageable pageable = PageRequest.of(page, size);
-            return ResponseEntity.ok()
-                    .body(new JSONObjectArrayResponse(new Object[]{
-                            fileSystemRepository.collectAllRecentsPageable(pageable),
-                            pageable},
-                            "Paged files and folders list"
-                    ));
-        } catch (Exception e) {
-            logger.error("Failed to list recents, page: {}, size: {}, reason: {}!", page, size, e.getMessage());
-            return ResponseEntity.badRequest().contentType(MediaType.APPLICATION_JSON).body(
-                    new JSONErrorResponse(e, "Failed to list recents, page: %d, size: %d, reason: %s!", page, size, e.getMessage())
-            );
-        }
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok()
+                .body(new JSONObjectArrayResponse(new Object[]{
+                        fileSystemRepository.collectAllRecentsPageable(pageable),
+                        pageable},
+                        "Paged files and folders list"
+                ));
     }
 
     @GetMapping(value = "folder", version = "2.0")

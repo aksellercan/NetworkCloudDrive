@@ -26,5 +26,5 @@ public interface SQLiteFileRepository extends JpaRepository<FileMetadata, Long> 
 
     List<FileMetadata> findAllByUseridAndMarked(Long userid, boolean marked);
 
-    Page<FileMetadata> findAllByUseridAndMarkedOrderByMarkDateDesc(Long userid, boolean marked, Pageable pageable);
+    Page<FileMetadata> findAllByUseridAndMarkedOrderByMarkedAtDesc(Long userid, boolean marked, Pageable pageable);
 }

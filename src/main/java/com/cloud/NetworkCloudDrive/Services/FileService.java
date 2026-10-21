@@ -82,7 +82,8 @@ public class FileService implements FileRepository {
             FileMetadata metadata = new FileMetadata(fileName, folderId, userSession.getId(), file.getContentType(), file.getSize());
             sqLiteDAO.persistObjects(metadata);
             // Encode in BASE32
-            String encodedFileName = encodingUtility.encodeBase32FileName(metadata.getId(), fileName, userSession.getId());
+//            String encodedFileName = encodingUtility.encodeBase32FileName(metadata.getId(), fileName, userSession.getId());
+            String encodedFileName = encodingUtility.newUnifiedEncodeBase32(metadata.getId(), userSession.getId());
             Path storagePath = storeFile(file.getInputStream(), encodedFileName, folderPath).get();
 
             logger.debug("storage path {}", storagePath);
@@ -153,7 +154,8 @@ public class FileService implements FileRepository {
         // Folder metadata
         FolderMetadata createdFolder = new FolderMetadata();
         sqLiteDAO.persistObjects(createdFolder);
-        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
+//        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
+        String encodedFolderName = encodingUtility.newUnifiedEncodeBase32(createdFolder.getId(), userSession.getId());
         // ensure encoded name is also a single path component
         if (encodedFolderName.contains("/") || encodedFolderName.contains("\\")) {
             throw new SecurityException("Invalid encoded folder name");
@@ -178,7 +180,7 @@ public class FileService implements FileRepository {
     public void markFile(boolean mark, long fileId) throws SQLException {
         FileMetadata fileMetadata = sqLiteDAO.queryFileMetadata(fileId, userSession.getId());
         fileMetadata.setMarked(mark);
-        fileMetadata.setMarkDate();
+        fileMetadata.updateMarkedAt();
         FileMetadata result = sqLiteDAO.saveFile(fileMetadata);
         logger.info("{}", result.toString());
     }
@@ -187,7 +189,7 @@ public class FileService implements FileRepository {
     public void markFolder(boolean mark, long folderId) throws SQLException {
         FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         folderMetadata.setMarked(mark);
-        folderMetadata.setMarkDate();
+        folderMetadata.updateMarkedAt();
         FolderMetadata result = sqLiteDAO.saveFolder(folderMetadata);
         logger.info("{}", result.toString());
     }
