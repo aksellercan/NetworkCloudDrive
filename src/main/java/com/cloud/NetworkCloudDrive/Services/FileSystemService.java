@@ -341,7 +341,12 @@ public class FileSystemService implements FileSystemRepository {
             logger.warn("Completed file tree deletion operation with some errors. Error count {}", errorCount);
     }
 
+    public String renameFolder(String name, FolderMetadata folderMetadata) {
+
+    }
+
     @Override
+    @Deprecated
     public String updateFolderName(String newName, FolderMetadata folder) throws Exception {
         //find file
         Path checkExists = fileUtility.returnPathIfItExists(pathUtility.resolvePathFromIdString(folder.getPath()));

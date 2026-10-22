@@ -5,7 +5,7 @@ import com.cloud.NetworkCloudDrive.Models.DTO.FileListItemDTO;
 import com.cloud.NetworkCloudDrive.Models.DTO.FolderListItemDTO;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
-import com.cloud.NetworkCloudDrive.Models.Generics.ListItemSuperClass;
+import com.cloud.NetworkCloudDrive.Models.Generics.ListItem;
 import com.cloud.NetworkCloudDrive.Models.Generics.Metadata;
 import com.cloud.NetworkCloudDrive.Models.ThumbnailMetadata;
 import com.cloud.NetworkCloudDrive.Models.UserEntity;
@@ -279,7 +279,7 @@ public class SQLiteDAO {
         return decodeNamesAndReturnList(list);
     }
 
-    public <T extends ListItemSuperClass, P extends Metadata> List<T> decodeNamesAndReturnList(List<P> inputList) {
+    public <T extends ListItem, P extends Metadata> List<T> decodeNamesAndReturnList(List<P> inputList) {
         List<T> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
         for (P listItemDTO : inputList) {
             if (encodingUtility.isBase32Decodable(listItemDTO.getName())) {

@@ -89,6 +89,8 @@ public class FileService implements FileRepository {
             logger.debug("storage path {}", storagePath);
             savedFileCount++;
             metadata.setName(fileName);
+            // set parent folder id used for path construction
+            metadata.setParentFolderId(folderId);
             if (thumbnailProperties.isAllowedImageFormat(file.getContentType())) {
                 ThumbnailJob thumbnailJob = new ThumbnailJob(storagePath, encodedFileName, metadata.getId());
                 sequentialJobExecutor.queueJobs(thumbnailJob);
@@ -156,13 +158,18 @@ public class FileService implements FileRepository {
         sqLiteDAO.persistObjects(createdFolder);
 //        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
         String encodedFolderName = encodingUtility.newUnifiedEncodeBase32(createdFolder.getId(), userSession.getId());
+        /*to be removed*/
+        // why does this exist?
         // ensure encoded name is also a single path component
         if (encodedFolderName.contains("/") || encodedFolderName.contains("\\")) {
             throw new SecurityException("Invalid encoded folder name");
         }
+        /*to be removed*/
         createdFolder.setPath(idPath + "/" + createdFolder.getId());
+        //will be primary way to path
+        createdFolder.setParentFolderId(folderId);
         createdFolder.setUserid(userSession.getId());
-        createdFolder.setName(encodedFolderName);
+        createdFolder.setName(folderName);
         // Check if duplicate
         if (fileUtility.checkIfFileExistsDecodeNames(userFolder, folderName))
             throw new FileAlreadyExistsException(String.format("Folder with name %s already exists at this path %s.", folderName, fullPath));
@@ -176,6 +183,7 @@ public class FileService implements FileRepository {
         return sqLiteDAO.saveFolder(createdFolder);
     }
 
+    //TODO move it to new service
     @Override
     public void markFile(boolean mark, long fileId) throws SQLException {
         FileMetadata fileMetadata = sqLiteDAO.queryFileMetadata(fileId, userSession.getId());

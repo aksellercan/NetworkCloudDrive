@@ -204,6 +204,24 @@ public class PathUtility {
         return fullPath.toString();
     }
 
+    /**
+     * Imperative solution to build the path
+     *
+     * @param folderId Folder to start with
+     * @return full path as String
+     */
+    public String imperativePathConstructor(long folderId) {
+        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+        long parentId = folderMetadata.getParentFolderId();
+        StringBuilder fullPath = new StringBuilder();
+        while (parentId >= 0) {
+            FolderMetadata parentFolderMetadata = sqLiteDAO.queryFolderMetadata(parentId, userSession.getId());
+            parentId = parentFolderMetadata.getParentFolderId();
+            fullPath.append(parentFolderMetadata.getName()).append(File.separator);
+        }
+        return fullPath.toString();
+    }
+
     public String resolvePathFromIdString(UserDTO userDTO, String idString) throws FileSystemException {
         String[] splitLine = idString.split("/");
         List<Long> idList = new ArrayList<>();

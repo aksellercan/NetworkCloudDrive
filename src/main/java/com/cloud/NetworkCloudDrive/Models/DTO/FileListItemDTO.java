@@ -1,9 +1,9 @@
 package com.cloud.NetworkCloudDrive.Models.DTO;
 
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
-import com.cloud.NetworkCloudDrive.Models.Generics.ListItemSuperClass;
+import com.cloud.NetworkCloudDrive.Models.Generics.ListItem;
 
-public class FileListItemDTO extends ListItemSuperClass {
+public class FileListItemDTO extends ListItem {
     private String mimeType;
     private long size;
     private boolean hasThumbnail;

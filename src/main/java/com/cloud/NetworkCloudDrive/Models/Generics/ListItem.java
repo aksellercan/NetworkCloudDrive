@@ -2,17 +2,17 @@ package com.cloud.NetworkCloudDrive.Models.Generics;
 
 import java.time.Instant;
 
-public class ListItemSuperClass {
+public class ListItem {
     private long id;
     private String name;
     private Instant createdAt;
     private Instant lastAccessedAt;
     private boolean marked;
 
-    public ListItemSuperClass() {
+    public ListItem() {
     }
 
-    public ListItemSuperClass(long id, String name, Instant createdAt, Instant lastAccessedAt, boolean marked) {
+    public ListItem(long id, String name, Instant createdAt, Instant lastAccessedAt, boolean marked) {
         this.id = id;
         this.name = name;
         this.createdAt = createdAt;

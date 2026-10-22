@@ -1,9 +1,9 @@
 package com.cloud.NetworkCloudDrive.Models.DTO;
 
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
-import com.cloud.NetworkCloudDrive.Models.Generics.ListItemSuperClass;
+import com.cloud.NetworkCloudDrive.Models.Generics.ListItem;
 
-public class FolderListItemDTO extends ListItemSuperClass {
+public class FolderListItemDTO extends ListItem {
     private String path;
 
     public FolderListItemDTO() {
