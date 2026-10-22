@@ -14,7 +14,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.Instant;
 
 @MappedSuperclass
-public class MetadataSuperClass {
+public class Metadata {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,10 +33,10 @@ public class MetadataSuperClass {
 
     private Instant markedAt;
 
-    public MetadataSuperClass() {
+    public Metadata() {
     }
 
-    public MetadataSuperClass(Long id, String name, Long userid, Instant createdAt, Instant lastUpdated, boolean marked, Instant markedAt) {
+    public Metadata(Long id, String name, Long userid, Instant createdAt, Instant lastUpdated, boolean marked, Instant markedAt) {
         this.id = id;
         this.name = name;
         this.userid = userid;
@@ -118,7 +118,7 @@ public class MetadataSuperClass {
      * @param <P>    Either FileMetadata or FolderMetadata object
      * @return Either FileListItemDTO or FolderListItemDTO object depending on P object instance, if its neither returns null
      */
-    public static <T extends ListItemSuperClass, P extends MetadataSuperClass> Object convertToGeneric(P object) {
+    public static <T extends ListItemSuperClass, P extends Metadata> Object convertToGeneric(P object) {
         if (object instanceof FileMetadata fileMetadata) {
             return new FileListItemDTO(fileMetadata);
         }

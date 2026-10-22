@@ -97,7 +97,7 @@ public class MaintenanceService implements MaintenanceRepository {
             case DONT_CREATE_THUMBNAILS:
                 scanDirectory(userDTO, startingDirectory, Files::exists, true, false);
                 break;
-            case SPECIAL_CASE:
+            case SPECIAL_CASE, DB_REBUILD, IO_REBUILD:
                 scanDirectoryRebuild(userDTO, startingDirectory);
                 break;
         }

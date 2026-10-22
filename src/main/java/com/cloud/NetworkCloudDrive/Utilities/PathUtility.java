@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -124,7 +123,6 @@ public class PathUtility {
      *
      * @param folderId current Folder ID
      * @return parent folder's path
-     * @throws SQLException        if Folder ID can't be found or invalid
      * @throws FileSystemException if path is invalid
      */
     public String returnParentFolderPathFromFolderID(long folderId) throws FileSystemException {
@@ -140,7 +138,6 @@ public class PathUtility {
      *
      * @param folderId get path to folder with ID passed
      * @return if 0 returns user folder path else returns path to folder with folderId
-     * @throws SQLException        if folderId is not found or invalid
      * @throws FileSystemException if path can't be resolved
      */
     public String getFolderPath(long folderId) throws FileSystemException {

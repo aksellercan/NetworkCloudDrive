@@ -1,13 +1,13 @@
 package com.cloud.NetworkCloudDrive.Models;
 
-import com.cloud.NetworkCloudDrive.Models.Generics.MetadataSuperClass;
+import com.cloud.NetworkCloudDrive.Models.Generics.Metadata;
 import jakarta.persistence.Entity;
 
 //TODO add folder permissions
 //DONE Last updated
 
 @Entity
-public class FolderMetadata extends MetadataSuperClass {
+public class FolderMetadata extends Metadata {
     private String path;
 
     public FolderMetadata(String name, String path) {

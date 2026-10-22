@@ -39,6 +39,13 @@ public class InformationController {
         this.pathUtility = pathUtility;
     }
 
+    @GetMapping(value = "get/filemetadata", version = "2.0")
+    @Cacheable("file_info")
+    public @ResponseBody ResponseEntity<?> getFileMetadata(@RequestParam long fileid) throws Exception {
+        return ResponseEntity.ok().body(new FileMetadata(informationRepository.getFileMetadata(fileid)));
+    }
+
+
     @GetMapping(value = "get/filemetadata", version = "1.0")
     @Cacheable("file_info")
     public @ResponseBody ResponseEntity<?> getFile(@RequestParam long fileid) {
@@ -66,9 +73,9 @@ public class InformationController {
             folderMetadata.setId(0L);
             folderMetadata.setUserid(userSession.getId());
         }
-        String decodeName = encodingUtility.decodeBase32StringNoPadding(folderMetadata.getName());
-        String[] splitColons = decodeName.split(":");
-        folderMetadata.setName(splitColons[1]);
+//        String decodeName = encodingUtility.decodeBase32StringNoPadding(folderMetadata.getName());
+//        String[] splitColons = decodeName.split(":");
+//        folderMetadata.setName(splitColons[1]);
         return ResponseEntity.ok().body(folderMetadata);
     }
 

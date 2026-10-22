@@ -88,7 +88,7 @@ public class FileService implements FileRepository {
 
             logger.debug("storage path {}", storagePath);
             savedFileCount++;
-            metadata.setName(encodedFileName);
+            metadata.setName(fileName);
             if (thumbnailProperties.isAllowedImageFormat(file.getContentType())) {
                 ThumbnailJob thumbnailJob = new ThumbnailJob(storagePath, encodedFileName, metadata.getId());
                 sequentialJobExecutor.queueJobs(thumbnailJob);

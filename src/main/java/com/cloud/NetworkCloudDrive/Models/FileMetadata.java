@@ -1,13 +1,13 @@
 package com.cloud.NetworkCloudDrive.Models;
 
-import com.cloud.NetworkCloudDrive.Models.Generics.MetadataSuperClass;
+import com.cloud.NetworkCloudDrive.Models.Generics.Metadata;
 import jakarta.persistence.Entity;
 import org.hibernate.annotations.ColumnDefault;
 
 //DONE Last updated
 
 @Entity
-public class FileMetadata extends MetadataSuperClass {
+public class FileMetadata extends Metadata {
     private Long folderId;
 
     private String mimiType;
