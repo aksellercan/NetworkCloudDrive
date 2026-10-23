@@ -35,7 +35,7 @@ public class UserSession {
     @PostConstruct
     @Transactional
     public CurrentUserDTO initializeUserSessionDetails() throws UsernameNotFoundException {
-        if (Boolean.parseBoolean(env.getProperty("environment.unit-test"))) return new CurrentUserDTO();
+        if (Boolean.parseBoolean(env.getProperty("environment.unit-test", "false"))) return new CurrentUserDTO();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null) throw new UsernameNotFoundException("Invalid authentication");
         if (this.name != null) {
@@ -48,8 +48,10 @@ public class UserSession {
         this.name = userDetailsDTO.getName();
         this.mail = userDetailsDTO.getMail();
         this.role = userDetailsDTO.getRole();
+        /*
         logger.debug("SESSION INFO: ID={} NAME={} MAIL={} ROLE={}", //debug
                 userDetailsDTO.getId(), userDetailsDTO.getName(), userDetailsDTO.getMail(), userDetailsDTO.getRole());
+         */
         return userDetailsDTO;
     }
 

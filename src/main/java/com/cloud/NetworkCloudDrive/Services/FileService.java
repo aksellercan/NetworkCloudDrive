@@ -82,12 +82,16 @@ public class FileService implements FileRepository {
             FileMetadata metadata = new FileMetadata(fileName, folderId, userSession.getId(), file.getContentType(), file.getSize());
             sqLiteDAO.persistObjects(metadata);
             // Encode in BASE32
-            String encodedFileName = encodingUtility.encodeBase32FileName(metadata.getId(), fileName, userSession.getId());
+//            String encodedFileName = encodingUtility.encodeBase32FileName(metadata.getId(), fileName, userSession.getId());
+            String key = encodingUtility.generateKey();
+            String encodedFileName = encodingUtility.unifiedEncodeBase64(metadata.getId(), key, userSession.getId());
             Path storagePath = storeFile(file.getInputStream(), encodedFileName, folderPath).get();
-
             logger.debug("storage path {}", storagePath);
             savedFileCount++;
-            metadata.setName(encodedFileName);
+            metadata.setName(fileName);
+            metadata.setKey(key);
+            // set parent folder id used for path construction
+            metadata.setParentFolderId(folderId);
             if (thumbnailProperties.isAllowedImageFormat(file.getContentType())) {
                 ThumbnailJob thumbnailJob = new ThumbnailJob(storagePath, encodedFileName, metadata.getId());
                 sequentialJobExecutor.queueJobs(thumbnailJob);
@@ -143,6 +147,12 @@ public class FileService implements FileRepository {
     }
 
     @Override
+    public void testNew(FolderMetadata folderMetadata) {
+        String path = pathUtility.renovedPathConstructor(folderMetadata.getId());
+        logger.info("testNew {}", path);
+    }
+
+    @Override
     public FolderMetadata createFolder(String folderName, long folderId) throws Exception {
         // Paths
         String idPath = sqLiteDAO.getIdPath(folderId, userSession.getId());
@@ -153,14 +163,22 @@ public class FileService implements FileRepository {
         // Folder metadata
         FolderMetadata createdFolder = new FolderMetadata();
         sqLiteDAO.persistObjects(createdFolder);
-        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
+//        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
+        String key = encodingUtility.generateKey();
+        String encodedFolderName = encodingUtility.unifiedEncodeBase64(createdFolder.getId(), key, userSession.getId());
+        /*to be removed*/
+        // why does this exist?
         // ensure encoded name is also a single path component
         if (encodedFolderName.contains("/") || encodedFolderName.contains("\\")) {
             throw new SecurityException("Invalid encoded folder name");
         }
+        /*to be removed*/
         createdFolder.setPath(idPath + "/" + createdFolder.getId());
+        //will be primary way to path
+        createdFolder.setParentFolderId(folderId);
         createdFolder.setUserid(userSession.getId());
-        createdFolder.setName(encodedFolderName);
+        createdFolder.setName(folderName);
+        createdFolder.setKey(key);
         // Check if duplicate
         if (fileUtility.checkIfFileExistsDecodeNames(userFolder, folderName))
             throw new FileAlreadyExistsException(String.format("Folder with name %s already exists at this path %s.", folderName, fullPath));
@@ -174,10 +192,12 @@ public class FileService implements FileRepository {
         return sqLiteDAO.saveFolder(createdFolder);
     }
 
+    //TODO move it to new service
     @Override
     public void markFile(boolean mark, long fileId) throws SQLException {
         FileMetadata fileMetadata = sqLiteDAO.queryFileMetadata(fileId, userSession.getId());
         fileMetadata.setMarked(mark);
+        fileMetadata.updateMarkedAt();
         FileMetadata result = sqLiteDAO.saveFile(fileMetadata);
         logger.info("{}", result.toString());
     }
@@ -186,6 +206,7 @@ public class FileService implements FileRepository {
     public void markFolder(boolean mark, long folderId) throws SQLException {
         FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         folderMetadata.setMarked(mark);
+        folderMetadata.updateMarkedAt();
         FolderMetadata result = sqLiteDAO.saveFolder(folderMetadata);
         logger.info("{}", result.toString());
     }

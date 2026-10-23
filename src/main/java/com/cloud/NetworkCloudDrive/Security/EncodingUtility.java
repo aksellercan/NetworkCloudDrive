@@ -1,19 +1,24 @@
 package com.cloud.NetworkCloudDrive.Security;
 
+import com.cloud.NetworkCloudDrive.Models.Enum.System.DEFAULTS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Random;
 
 @Component
 public class EncodingUtility {
     private final Logger logger = LoggerFactory.getLogger(EncodingUtility.class);
+    private final Environment env;
 
-    public EncodingUtility() {
+    public EncodingUtility(Environment env) {
+        this.env = env;
     }
 
     /**
@@ -48,8 +53,8 @@ public class EncodingUtility {
         return decodeBase32StringNoPadding(base32String).split(":");
     }
 
-    public long getMetadataIDFromEncodedBase32(String base32String) {
-        return Long.parseLong(decodedBase32SplitArray(base32String)[0]);
+    public long getMetadataIDFromEncodedBase64(String base64String) {
+        return Long.parseLong(decodedBase32SplitArray(base64String)[0]);
     }
 
     public boolean isEncodedStringUserDirectory(String encodedString) {
@@ -74,6 +79,60 @@ public class EncodingUtility {
      */
     public String encodeBase32FolderName(long folderId, String folderName, long userId) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString((folderId + ":" + folderName + ":" + userId).getBytes());
+    }
+
+    private String randomizeString(int size) {
+        Random random = new Random();
+        String alphabet = env.getProperty("encode-randomize-string-alphabet", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < size; i++) {
+            sb.append(alphabet.charAt(random.nextInt(alphabet.length())));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Encodes string in Base64 with URL safe alphabet. Depending on application configuration.
+     * It will also add a 'n' sized array of letters between id's which will greatly increase the combinations encoding can have even if id's are same for all items.
+     * <p>This can be configured in 'application.properties' with keys:</p>
+     * <ul>
+     * <li>
+     * "encode-randomize-strings" to turn this feature on, default true
+     * </li>
+     * <li>
+     * "encode-randomize-alphabet" set the letters to use, default alphabet
+     * </li>
+     * <li>
+     * "encode-randomize-alphabet-size" set size of the randomized string, default 3 max value is 32
+     * </li>
+     * </ul>
+     *
+     * <p>Changing any of these later will not have any negative impact</p>
+     *
+     * @param fid    File or Folder id
+     * @param userId User id
+     * @return BASE64 encoded with URL safe alphabet
+     */
+    public String unifiedEncodeBase64(long fid, long userId) {
+        int size = Integer.parseInt(env.getProperty("encode-randomize-string-size", "3"));
+        size = Math.min(size, DEFAULTS.MAX_SIZE_OF_KEY.getMax_size());
+        String encodeFormat = fid + ":" + randomizeString(size) + ":" + userId;
+        return Base64.getUrlEncoder().withoutPadding().encodeToString((encodeFormat).getBytes());
+    }
+
+    public String unifiedEncodeBase64(long fid, String key, long userId) {
+        String encodeFormat = fid + ":" + key + ":" + userId;
+        return Base64.getUrlEncoder().withoutPadding().encodeToString((encodeFormat).getBytes());
+    }
+
+    public String generateKey(int size) {
+        return randomizeString(size);
+    }
+
+    public String generateKey() {
+        int size = Integer.parseInt(env.getProperty("encode-randomize-string-size", "3"));
+        size = Math.min(size, DEFAULTS.MAX_SIZE_OF_KEY.getMax_size());
+        return generateKey(size);
     }
 
     /**

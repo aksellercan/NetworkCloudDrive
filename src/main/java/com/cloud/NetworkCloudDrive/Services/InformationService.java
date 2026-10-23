@@ -16,7 +16,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 
@@ -28,7 +27,6 @@ public class InformationService implements InformationRepository {
     private final UserSession userSession;
     private final PathUtility pathUtility;
 
-
     public InformationService(FileUtility fileUtility, SQLiteDAO sqLiteDAO, UserSession userSession, PathUtility pathUtility) {
         this.fileUtility = fileUtility;
         this.userSession = userSession;
@@ -39,7 +37,7 @@ public class InformationService implements InformationRepository {
     @Transactional
     @Override
     public FolderMetadata getFolderMetadataByFolderIdAndName(long folderId, String name, List<Long> skipList)
-            throws FileSystemException, SQLException {
+            throws FileSystemException {
         String idPath = sqLiteDAO.getIdPath(folderId, userSession.getId());
         List<FolderMetadata> findAllByPathList = sqLiteDAO.findAllContainingSectionOfIdPathIgnoreCase(idPath, userSession.getId());
         if (findAllByPathList.isEmpty())
@@ -59,8 +57,18 @@ public class InformationService implements InformationRepository {
         return returnFolder;
     }
 
+//    @Override
+//    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {
+//        FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
+//        retrievedFile.setLastUpdated(Instant.now());
+//        File fileCheck = fileUtility.returnFileIfItExists(
+//                pathUtility.getFolderPath(retrievedFile.getFolderId()) + File.separator + retrievedFile.getName());
+//        retrievedFile.setSize(fileCheck.length()); //bytes
+//        return retrievedFile;
+//    }
+
     @Override
-    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, SQLException, FileSystemException {
+    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {
         FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
         retrievedFile.setLastUpdated(Instant.now());
         File fileCheck = fileUtility.returnFileIfItExists(
@@ -70,7 +78,7 @@ public class InformationService implements InformationRepository {
     }
 
     @Override
-    public FolderMetadata getFolderMetadata(long folderId) throws IOException, SQLException {
+    public FolderMetadata getFolderMetadata(long folderId) throws IOException {
         FolderMetadata folder = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         folder.setLastUpdated(Instant.now());
         File getFolder = fileUtility.returnFileIfItExists(pathUtility.resolvePathFromIdString(folder.getPath()));

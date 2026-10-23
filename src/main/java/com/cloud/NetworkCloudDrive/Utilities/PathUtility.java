@@ -15,7 +15,6 @@ import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -124,11 +123,12 @@ public class PathUtility {
      *
      * @param folderId current Folder ID
      * @return parent folder's path
-     * @throws SQLException        if Folder ID can't be found or invalid
      * @throws FileSystemException if path is invalid
      */
-    public String returnParentFolderPathFromFolderID(long folderId) throws SQLException, FileSystemException {
-        String[] splitPath = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId()).getPath().split("/");
+    public String returnParentFolderPathFromFolderID(long folderId) throws FileSystemException {
+        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+        if (folderMetadata == null) throw new FileSystemException("Folder id not found");
+        String[] splitPath = folderMetadata.getPath().split("/");
         long parentFolderId = Long.parseLong(splitPath[splitPath.length - 2]);
         return getFolderPath(parentFolderId);
     }
@@ -138,10 +138,11 @@ public class PathUtility {
      *
      * @param folderId get path to folder with ID passed
      * @return if 0 returns user folder path else returns path to folder with folderId
-     * @throws SQLException        if folderId is not found or invalid
      * @throws FileSystemException if path can't be resolved
      */
-    public String getFolderPath(long folderId) throws SQLException, FileSystemException {
+    public String getFolderPath(long folderId) throws FileSystemException {
+//        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+//        if (folderMetadata == null) throw new FileSystemException("Folder id not found");
         return folderId > 0
                 ?
                 resolvePathFromIdString(sqLiteDAO.queryFolderMetadata(folderId, userSession.getId()).getPath())
@@ -200,6 +201,67 @@ public class PathUtility {
         }
         fullPath.setLength(fullPath.length() - 1);
         logger.debug("output {}", fullPath);
+        return fullPath.toString();
+    }
+
+    /**
+     * Imperative solution to build the path
+     *
+     * @param folderId Folder to start with
+     * @return full path as String
+     */
+    public String imperativePathConstructor(long folderId) {
+        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+        long parentId = folderMetadata.getParentFolderId();
+        StringBuilder fullPath = new StringBuilder();
+        fullPath.append(folderMetadata.getName()).append('.');
+        List<String> folders = new ArrayList<>();
+        while (parentId >= Integer.MIN_VALUE) {
+            if (parentId <= 0) {
+                //use array instead of strinbuilder then flip it
+                try {
+                    fullPath.append(userUtility.returnUserFolder().toString());
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                    break;
+                }
+                break;
+            }
+            FolderMetadata parentFolderMetadata = sqLiteDAO.queryFolderMetadata(parentId, userSession.getId());
+            parentId = parentFolderMetadata.getParentFolderId();
+            folders.add(parentFolderMetadata.getName());
+            fullPath.append(parentFolderMetadata.getName()).append(File.separator);
+        }
+        return fullPath.toString();
+    }
+
+    public String renovedPathConstructor(long folderId) {
+        List<String> folders = new ArrayList<>();
+        long parentId = folderId;
+        try {
+            while (parentId > 0) {
+                FolderMetadata currentFolderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+                parentId = currentFolderMetadata.getParentFolderId();
+                folders.add(currentFolderMetadata.getName());
+                logger.info("renoved {}", currentFolderMetadata.toString());
+            }
+            folders.add(userUtility.returnUserFolder().toString());
+
+            logger.info("left {}", folders.get(folders.size() - 1));
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return patchFoldersTogether(folders);
+    }
+
+    public String patchFoldersTogether(List<String> folders) {
+        StringBuilder fullPath = new StringBuilder();
+        for (int i = 0; i < folders.size(); i++) {
+            if (i == folders.size() - 1) {
+                fullPath.append(folders.get(i));
+            }
+            fullPath.append(folders.get(i)).append(File.separator);
+        }
         return fullPath.toString();
     }
 
