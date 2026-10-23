@@ -21,6 +21,8 @@ public interface FileRepository {
 
     CompletableFuture<Resource> getFile(FileMetadata file, String path) throws Exception;
 
+    void testNew(FolderMetadata folderMetadata);
+
     FolderMetadata createFolder(String folderName, long folderId) throws Exception;
 
     void markFile(boolean mark, long fileId) throws SQLException;

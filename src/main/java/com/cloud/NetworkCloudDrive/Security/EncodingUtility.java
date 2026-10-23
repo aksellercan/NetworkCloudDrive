@@ -1,5 +1,6 @@
 package com.cloud.NetworkCloudDrive.Security;
 
+import com.cloud.NetworkCloudDrive.Models.Enum.System.DEFAULTS;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -112,14 +113,26 @@ public class EncodingUtility {
      * @param userId User id
      * @return BASE64 encoded with URL safe alphabet
      */
-    public String newUnifiedEncodeBase32(long fid, long userId) {
-        String encodeFormat = fid + ":" + userId;
-        if (Boolean.parseBoolean(env.getProperty("encode-randomize-string", "true"))) {
-            int size = Integer.parseInt(env.getProperty("encode-randomize-string-size", "3"));
-            if (size > 32) size = 32;
-            encodeFormat = fid + ":" + randomizeString(size) + ":" + userId;
-        }
+    public String unifiedEncodeBase64(long fid, long userId) {
+        int size = Integer.parseInt(env.getProperty("encode-randomize-string-size", "3"));
+        size = Math.min(size, DEFAULTS.MAX_SIZE_OF_KEY.getMax_size());
+        String encodeFormat = fid + ":" + randomizeString(size) + ":" + userId;
         return Base64.getUrlEncoder().withoutPadding().encodeToString((encodeFormat).getBytes());
+    }
+
+    public String unifiedEncodeBase64(long fid, String key, long userId) {
+        String encodeFormat = fid + ":" + key + ":" + userId;
+        return Base64.getUrlEncoder().withoutPadding().encodeToString((encodeFormat).getBytes());
+    }
+
+    public String generateKey(int size) {
+        return randomizeString(size);
+    }
+
+    public String generateKey() {
+        int size = Integer.parseInt(env.getProperty("encode-randomize-string-size", "3"));
+        size = Math.min(size, DEFAULTS.MAX_SIZE_OF_KEY.getMax_size());
+        return generateKey(size);
     }
 
     /**

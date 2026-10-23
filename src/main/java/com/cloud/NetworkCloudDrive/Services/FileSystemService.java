@@ -341,9 +341,9 @@ public class FileSystemService implements FileSystemRepository {
             logger.warn("Completed file tree deletion operation with some errors. Error count {}", errorCount);
     }
 
-    public String renameFolder(String name, FolderMetadata folderMetadata) {
-
-    }
+//    public String renameFolder(String name, FolderMetadata folderMetadata) {
+//
+//    }
 
     @Override
     @Deprecated

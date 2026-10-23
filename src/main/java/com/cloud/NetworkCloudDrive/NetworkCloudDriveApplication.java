@@ -14,9 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class NetworkCloudDriveApplication {
     public static void main(String[] args) {
         final Logger logger = LoggerFactory.getLogger(NetworkCloudDriveApplication.class);
-        logger.info("Operating System: {}", System.getProperty("os.name"));
-        logger.info("Operating System Version: {}", System.getProperty("os.version"));
-        logger.info("Operating System Architecture: {}", System.getProperty("os.arch"));
+        logger.info("System Information:\nOperating System: {}\nOperating System Version: {}\nOperating System Architecture: {}", System.getProperty("os.name"), System.getProperty("os.version"), System.getProperty("os.arch"));
         SpringApplication.run(NetworkCloudDriveApplication.class, args);
     }
 }

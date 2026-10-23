@@ -83,12 +83,13 @@ public class FileService implements FileRepository {
             sqLiteDAO.persistObjects(metadata);
             // Encode in BASE32
 //            String encodedFileName = encodingUtility.encodeBase32FileName(metadata.getId(), fileName, userSession.getId());
-            String encodedFileName = encodingUtility.newUnifiedEncodeBase32(metadata.getId(), userSession.getId());
+            String key = encodingUtility.generateKey();
+            String encodedFileName = encodingUtility.unifiedEncodeBase64(metadata.getId(), key, userSession.getId());
             Path storagePath = storeFile(file.getInputStream(), encodedFileName, folderPath).get();
-
             logger.debug("storage path {}", storagePath);
             savedFileCount++;
             metadata.setName(fileName);
+            metadata.setKey(key);
             // set parent folder id used for path construction
             metadata.setParentFolderId(folderId);
             if (thumbnailProperties.isAllowedImageFormat(file.getContentType())) {
@@ -146,6 +147,12 @@ public class FileService implements FileRepository {
     }
 
     @Override
+    public void testNew(FolderMetadata folderMetadata) {
+        String path = pathUtility.renovedPathConstructor(folderMetadata.getId());
+        logger.info("testNew {}", path);
+    }
+
+    @Override
     public FolderMetadata createFolder(String folderName, long folderId) throws Exception {
         // Paths
         String idPath = sqLiteDAO.getIdPath(folderId, userSession.getId());
@@ -157,7 +164,8 @@ public class FileService implements FileRepository {
         FolderMetadata createdFolder = new FolderMetadata();
         sqLiteDAO.persistObjects(createdFolder);
 //        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
-        String encodedFolderName = encodingUtility.newUnifiedEncodeBase32(createdFolder.getId(), userSession.getId());
+        String key = encodingUtility.generateKey();
+        String encodedFolderName = encodingUtility.unifiedEncodeBase64(createdFolder.getId(), key, userSession.getId());
         /*to be removed*/
         // why does this exist?
         // ensure encoded name is also a single path component
@@ -170,6 +178,7 @@ public class FileService implements FileRepository {
         createdFolder.setParentFolderId(folderId);
         createdFolder.setUserid(userSession.getId());
         createdFolder.setName(folderName);
+        createdFolder.setKey(key);
         // Check if duplicate
         if (fileUtility.checkIfFileExistsDecodeNames(userFolder, folderName))
             throw new FileAlreadyExistsException(String.format("Folder with name %s already exists at this path %s.", folderName, fullPath));

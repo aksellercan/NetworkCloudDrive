@@ -21,6 +21,8 @@ public class Metadata {
 
     private String name;
 
+    private String key;
+
     private Long userid;
 
     @CreationTimestamp
@@ -38,8 +40,9 @@ public class Metadata {
     public Metadata() {
     }
 
-    public Metadata(Long id, String name, Long parentFolderId, Long userid, Instant createdAt, Instant lastUpdated, boolean marked, Instant markedAt) {
+    public Metadata(Long id, String name, String key, Long parentFolderId, Long userid, Instant createdAt, Instant lastUpdated, boolean marked, Instant markedAt) {
         this.id = id;
+        this.key = key;
         this.name = name;
         this.parentFolderId = parentFolderId;
         this.userid = userid;
@@ -119,6 +122,14 @@ public class Metadata {
 
     public void setParentFolderId(Long parentFolderId) {
         this.parentFolderId = parentFolderId;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     /**

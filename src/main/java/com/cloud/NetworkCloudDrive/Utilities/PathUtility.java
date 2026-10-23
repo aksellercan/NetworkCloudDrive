@@ -214,10 +214,53 @@ public class PathUtility {
         FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         long parentId = folderMetadata.getParentFolderId();
         StringBuilder fullPath = new StringBuilder();
-        while (parentId >= 0) {
+        fullPath.append(folderMetadata.getName()).append('.');
+        List<String> folders = new ArrayList<>();
+        while (parentId >= Integer.MIN_VALUE) {
+            if (parentId <= 0) {
+                //use array instead of strinbuilder then flip it
+                try {
+                    fullPath.append(userUtility.returnUserFolder().toString());
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                    break;
+                }
+                break;
+            }
             FolderMetadata parentFolderMetadata = sqLiteDAO.queryFolderMetadata(parentId, userSession.getId());
             parentId = parentFolderMetadata.getParentFolderId();
+            folders.add(parentFolderMetadata.getName());
             fullPath.append(parentFolderMetadata.getName()).append(File.separator);
+        }
+        return fullPath.toString();
+    }
+
+    public String renovedPathConstructor(long folderId) {
+        List<String> folders = new ArrayList<>();
+        long parentId = folderId;
+        try {
+            while (parentId > 0) {
+                FolderMetadata currentFolderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
+                parentId = currentFolderMetadata.getParentFolderId();
+                folders.add(currentFolderMetadata.getName());
+                logger.info("renoved {}", currentFolderMetadata.toString());
+            }
+            folders.add(userUtility.returnUserFolder().toString());
+
+            logger.info("left {}", folders.get(folders.size() - 1));
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return patchFoldersTogether(folders);
+    }
+
+    public String patchFoldersTogether(List<String> folders) {
+        StringBuilder fullPath = new StringBuilder();
+        for (int i = 0; i < folders.size(); i++) {
+            if (i == folders.size() - 1) {
+                fullPath.append(folders.get(i));
+            }
+            fullPath.append(folders.get(i)).append(File.separator);
         }
         return fullPath.toString();
     }
