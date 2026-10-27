@@ -14,7 +14,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -99,7 +98,7 @@ public class PathUtility {
      * @throws IOException When user folder doesn't exist or not found it will create it however will throw IOException if it can't
      */
     public boolean isPathAllowed(Path path) throws IOException {
-        return Paths.get(".", path.normalize().toString()).startsWith(userUtility.returnUserFolderasPath());
+        return path.startsWith(userUtility.returnUserFolderasPath());
     }
 
     /**
@@ -141,8 +140,23 @@ public class PathUtility {
      * @throws FileSystemException if path can't be resolved
      */
     public String getFolderPath(long folderId) throws FileSystemException {
-//        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
-//        if (folderMetadata == null) throw new FileSystemException("Folder id not found");
+        return folderId > 0
+                ?
+                renovedPathConstructor(folderId)
+                :
+                encodingUtility.encodeBase32UserFolderName(userSession.getId(), userSession.getName(), userSession.getMail());
+    }
+
+
+    /**
+     * Returns User folder or path to folder using folderId
+     *
+     * @param folderId get path to folder with ID passed
+     * @return if 0 returns user folder path else returns path to folder with folderId
+     * @throws FileSystemException if path can't be resolved
+     */
+    @Deprecated
+    public String getFolderPathOld(long folderId) throws FileSystemException {
         return folderId > 0
                 ?
                 resolvePathFromIdString(sqLiteDAO.queryFolderMetadata(folderId, userSession.getId()).getPath())
@@ -168,6 +182,7 @@ public class PathUtility {
      * @return full system path of folder
      * @throws FileSystemException if the path is invalid or the database is out of sync
      */
+    @Deprecated
     public String resolvePathFromIdString(String idString) throws FileSystemException {
         String[] splitLine = idString.split("/");
         List<Long> idList = new ArrayList<>();
@@ -242,11 +257,11 @@ public class PathUtility {
             while (parentId > 0) {
                 FolderMetadata currentFolderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
                 parentId = currentFolderMetadata.getParentFolderId();
-                folders.add(currentFolderMetadata.getName());
-                logger.info("renoved {}", currentFolderMetadata.toString());
+                String fullName = encodingUtility.unifiedEncodeBase64(currentFolderMetadata);
+                folders.add(fullName);
+                logger.info("renoved id {} parentid {} name {}", folderId, parentId, currentFolderMetadata.getName());
             }
             folders.add(userUtility.returnUserFolder().toString());
-
             logger.info("left {}", folders.get(folders.size() - 1));
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -256,15 +271,18 @@ public class PathUtility {
 
     public String patchFoldersTogether(List<String> folders) {
         StringBuilder fullPath = new StringBuilder();
-        for (int i = 0; i < folders.size(); i++) {
-            if (i == folders.size() - 1) {
-                fullPath.append(folders.get(i));
+        for (int i = folders.size() - 1; i >= 0; i--) {
+            if (i == 0) {
+                fullPath.append(File.separator).append(folders.get(i));
+                logger.info("left {}", fullPath);
+                break;
             }
-            fullPath.append(folders.get(i)).append(File.separator);
+            fullPath.append(folders.get(i));
         }
         return fullPath.toString();
     }
 
+    @Deprecated
     public String resolvePathFromIdString(UserDTO userDTO, String idString) throws FileSystemException {
         String[] splitLine = idString.split("/");
         List<Long> idList = new ArrayList<>();

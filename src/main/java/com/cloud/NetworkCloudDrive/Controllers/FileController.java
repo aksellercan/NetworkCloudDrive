@@ -29,9 +29,9 @@ import java.sql.SQLException;
 @RequestMapping(path = "file")
 public class FileController {
     private final FileRepository fileRepository;
+    private final EncodingUtility encodingUtility;
     private final InformationRepository informationRepository;
     private final Logger logger = LoggerFactory.getLogger(FileController.class);
-    private final EncodingUtility encodingUtility;
     private final PathUtility pathUtility;
 
     public FileController(
@@ -51,6 +51,7 @@ public class FileController {
             if (files.length == 0)
                 throw new NullPointerException("No files provided");
             String folderPath = pathUtility.getFolderPath(folderid);
+            logger.info("folder path {}", folderPath);
             return ResponseEntity.ok().body(fileRepository.uploadFiles(files, folderPath, folderid));
         } catch (FileAlreadyExistsException fileAlreadyExistsException) {
             logger.error("File already exists at destination {}", fileAlreadyExistsException.getMessage());
@@ -83,15 +84,31 @@ public class FileController {
         }
     }
 
-    @GetMapping("download")
-    public ResponseEntity<?> downloadFile(@RequestParam long fileid) {
+    @GetMapping(value = "download", version = "2.0")
+    public ResponseEntity<?> downloadFile(@RequestParam long fileid) throws Exception {
+        FileMetadata metadata = informationRepository.getFileMetadata(fileid);
+        String actualPath = pathUtility.getFolderPath(metadata.getFolderId());
+        String decodedFileName = metadata.getName();
+        String safeQuotes = decodedFileName.replace("\"", "\\\"");
+        String serialize = URLEncoder.encode(safeQuotes, StandardCharsets.UTF_8);
+        Resource file = fileRepository.getFile(metadata, actualPath).get();
+        return ResponseEntity.ok().
+                header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + serialize + "\" ")
+                .contentType(MediaType.parseMediaType(metadata.getMimiType()))
+                .contentLength(metadata.getSize())
+                .body(file);
+    }
+
+    @GetMapping(value = "download", version = "1.0")
+    public ResponseEntity<?> downloadFileOld(@RequestParam long fileid) {
         try {
-            FileMetadata metadata = informationRepository.getFileMetadata(fileid);
-            String actualPath = pathUtility.getFolderPath(metadata.getFolderId());
+            FileMetadata metadata = informationRepository.getFileMetadataOld(fileid);
+            String actualPath = pathUtility.getFolderPathOld(metadata.getFolderId());
             String decodedFileName = encodingUtility.decodedBase32SplitArray(metadata.getName())[1];
             String safeQuotes = decodedFileName.replace("\"", "\\\"");
             String serialize = URLEncoder.encode(safeQuotes, StandardCharsets.UTF_8);
-            Resource file = fileRepository.getFile(metadata, actualPath).get();
+            Resource file = fileRepository.getFileOld(metadata, actualPath).get();
             return ResponseEntity.ok().
                     header(HttpHeaders.CONTENT_DISPOSITION,
                             "attachment; filename=\"" + serialize + "\" ")
@@ -108,12 +125,18 @@ public class FileController {
         }
     }
 
-    @PostMapping(value = "create/folder")
-    public ResponseEntity<?> createFolder(@RequestBody CreateFolderDTO folderDTO) {
+    @PostMapping(value = "create/folder", version = "2.0")
+    public ResponseEntity<?> createFolder(@RequestBody CreateFolderDTO folderDTO) throws Exception {
+        FolderMetadata folderMetadata = fileRepository.createFolder(folderDTO.getName(), folderDTO.getFolder_id());
+        folderMetadata.setPath(pathUtility.renovedPathConstructor(folderMetadata.getId()));
+        return ResponseEntity.ok().body(folderMetadata);
+    }
+
+    @PostMapping(value = "create/folder", version = "1.0")
+    public ResponseEntity<?> createFolderOld(@RequestBody CreateFolderDTO folderDTO) {
         try {
-            FolderMetadata folderMetadata = fileRepository.createFolder(folderDTO.getName(), folderDTO.getFolder_id());
+            FolderMetadata folderMetadata = fileRepository.createFolderOld(folderDTO.getName(), folderDTO.getFolder_id());
             folderMetadata.setPath(pathUtility.resolvePathFromIdString(folderMetadata.getPath()));
-            fileRepository.testNew(folderMetadata);
             return ResponseEntity.ok().body(folderMetadata);
         } catch (FileAlreadyExistsException fae) {
             logger.error("Folder with name {} already exists. {}", folderDTO.getName(), fae.getMessage());

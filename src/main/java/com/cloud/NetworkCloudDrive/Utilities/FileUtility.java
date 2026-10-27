@@ -109,6 +109,22 @@ public class FileUtility {
      * @throws FileNotFoundException if file does not exist at path
      */
     public Path returnPathIfItExists(String path) throws FileNotFoundException {
+        Path checkExists = Paths.get(path);
+        if (!Files.exists(checkExists))
+            throw new FileNotFoundException(String.format("%s does not exist at path %s",
+                    (Files.isRegularFile(checkExists) ? "File" : "Folder"), checkExists));
+        return checkExists;
+    }
+
+    /**
+     * Returns if file exists at path uses NIO instead of IO
+     *
+     * @param path file path to check
+     * @return file if it exists
+     * @throws FileNotFoundException if file does not exist at path
+     */
+    @Deprecated
+    public Path returnPathIfItExistsOld(String path) throws FileNotFoundException {
         Path checkExists = pathUtility.getFullPath(path);
         if (!Files.exists(checkExists))
             throw new FileNotFoundException(String.format("%s does not exist at path %s",

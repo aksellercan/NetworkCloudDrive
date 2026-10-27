@@ -4,6 +4,7 @@ import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
 import com.cloud.NetworkCloudDrive.Persistence.SQLiteDAO;
 import com.cloud.NetworkCloudDrive.Repositories.InformationRepository;
+import com.cloud.NetworkCloudDrive.Security.EncodingUtility;
 import com.cloud.NetworkCloudDrive.Sessions.UserSession;
 import com.cloud.NetworkCloudDrive.Utilities.FileUtility;
 import com.cloud.NetworkCloudDrive.Utilities.PathUtility;
@@ -26,12 +27,14 @@ public class InformationService implements InformationRepository {
     private final SQLiteDAO sqLiteDAO;
     private final UserSession userSession;
     private final PathUtility pathUtility;
+    private final EncodingUtility encodingUtility;
 
-    public InformationService(FileUtility fileUtility, SQLiteDAO sqLiteDAO, UserSession userSession, PathUtility pathUtility) {
+    public InformationService(FileUtility fileUtility, SQLiteDAO sqLiteDAO, UserSession userSession, PathUtility pathUtility, EncodingUtility encodingUtility) {
         this.fileUtility = fileUtility;
         this.userSession = userSession;
         this.sqLiteDAO = sqLiteDAO;
         this.pathUtility = pathUtility;
+        this.encodingUtility = encodingUtility;
     }
 
     @Transactional
@@ -57,22 +60,24 @@ public class InformationService implements InformationRepository {
         return returnFolder;
     }
 
-//    @Override
-//    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {
-//        FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
-//        retrievedFile.setLastUpdated(Instant.now());
-//        File fileCheck = fileUtility.returnFileIfItExists(
-//                pathUtility.getFolderPath(retrievedFile.getFolderId()) + File.separator + retrievedFile.getName());
-//        retrievedFile.setSize(fileCheck.length()); //bytes
-//        return retrievedFile;
-//    }
-
+    @Deprecated
     @Override
-    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {
+    public FileMetadata getFileMetadataOld(long id) throws FileNotFoundException, FileSystemException {
         FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
         retrievedFile.setLastUpdated(Instant.now());
         File fileCheck = fileUtility.returnFileIfItExists(
                 pathUtility.getFolderPath(retrievedFile.getFolderId()) + File.separator + retrievedFile.getName());
+        retrievedFile.setSize(fileCheck.length()); //bytes
+        return retrievedFile;
+    }
+
+    @Override
+    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {
+        FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
+        String fullName = encodingUtility.unifiedEncodeBase64(retrievedFile);
+        retrievedFile.setLastUpdated(Instant.now());
+        File fileCheck = fileUtility.returnFileIfItExists(
+                pathUtility.getFolderPath(retrievedFile.getFolderId()) + File.separator + fullName);
         retrievedFile.setSize(fileCheck.length()); //bytes
         return retrievedFile;
     }

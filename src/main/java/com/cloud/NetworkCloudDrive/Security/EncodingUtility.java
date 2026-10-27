@@ -1,6 +1,8 @@
 package com.cloud.NetworkCloudDrive.Security;
 
 import com.cloud.NetworkCloudDrive.Models.Enum.System.DEFAULTS;
+import com.cloud.NetworkCloudDrive.Models.FileMetadata;
+import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -123,6 +125,14 @@ public class EncodingUtility {
     public String unifiedEncodeBase64(long fid, String key, long userId) {
         String encodeFormat = fid + ":" + key + ":" + userId;
         return Base64.getUrlEncoder().withoutPadding().encodeToString((encodeFormat).getBytes());
+    }
+
+    public String unifiedEncodeBase64(FileMetadata fileMetadata) {
+        return unifiedEncodeBase64(fileMetadata.getId(), fileMetadata.getKey(), fileMetadata.getUserid());
+    }
+
+    public String unifiedEncodeBase64(FolderMetadata folderMetadata) {
+        return unifiedEncodeBase64(folderMetadata.getId(), folderMetadata.getKey(), folderMetadata.getUserid());
     }
 
     public String generateKey(int size) {
