@@ -273,7 +273,7 @@ public class PathUtility {
         StringBuilder fullPath = new StringBuilder();
         for (int i = folders.size() - 1; i >= 0; i--) {
             if (i == 0) {
-                fullPath.append(File.separator).append(folders.get(i));
+                fullPath.append(returnCorrectSeparatorRegex()).append(folders.get(i));
                 logger.info("left {}", fullPath);
                 break;
             }
