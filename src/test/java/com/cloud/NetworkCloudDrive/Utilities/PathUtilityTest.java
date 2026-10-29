@@ -19,6 +19,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -126,10 +127,10 @@ class PathUtilityTest {
 
     @Test
     void isPathAllowed_WhenPathUnderUserFolder_ReturnsTrue() throws Exception {
-        Path userFolder = Paths.get(".", "user_enc");
+        Path userFolder = Path.of("/base/user_enc");
         when(userUtility.returnUserFolderasPath()).thenReturn(userFolder);
 
-        Path allowedPath = Path.of("user_enc/subdir/file.txt");
+        Path allowedPath = Path.of("/base/user_enc/subdir/file.txt");
         boolean result = pathUtility.isPathAllowed(allowedPath);
 
         assertTrue(result);
@@ -137,9 +138,19 @@ class PathUtilityTest {
 
     @Test
     void isPathAllowed_WhenPathOutsideUserFolder_ReturnsFalse() throws Exception {
-        when(userUtility.returnUserFolderasPath()).thenReturn(Paths.get(".", "user_enc"));
+        when(userUtility.returnUserFolderasPath()).thenReturn(Path.of("/base/user_enc"));
 
         Path outsidePath = Path.of("/other/dir/file.txt");
+        boolean result = pathUtility.isPathAllowed(outsidePath);
+
+        assertFalse(result);
+    }
+
+    @Test
+    void isPathAllowed_WhenPathIsParentOfUserFolder_ReturnsFalse() throws Exception {
+        when(userUtility.returnUserFolderasPath()).thenReturn(Path.of("/base/user_enc"));
+
+        Path outsidePath = Path.of("/base/other/file.txt");
         boolean result = pathUtility.isPathAllowed(outsidePath);
 
         assertFalse(result);
@@ -162,18 +173,17 @@ class PathUtilityTest {
         com.cloud.NetworkCloudDrive.Models.FolderMetadata folder =
                 new com.cloud.NetworkCloudDrive.Models.FolderMetadata("folder", "0/5/3");
         folder.setId(3L);
+        folder.setParentFolderId(0L);
         when(sqLiteDAO.queryFolderMetadata(3L, 1L)).thenReturn(folder);
         when(userSession.getId()).thenReturn(1L);
 
         com.cloud.NetworkCloudDrive.Models.FolderMetadata parentFolder =
                 new com.cloud.NetworkCloudDrive.Models.FolderMetadata("parent", "0/5");
         parentFolder.setId(5L);
+        parentFolder.setParentFolderId(0L);
         when(sqLiteDAO.queryFolderMetadata(5L, 1L)).thenReturn(parentFolder);
-        when(encodingUtility.encodeBase32UserFolderName(1L, "testuser", "test@example.com")).thenReturn("user_enc");
-        when(userSession.getName()).thenReturn("testuser");
-        when(userSession.getMail()).thenReturn("test@example.com");
-
-        when(sqLiteDAO.findAllByIdInSQLFolderMetadata(List.of(0L, 5L), 1L)).thenReturn(List.of(parentFolder));
+        when(encodingUtility.unifiedEncodeBase64(parentFolder)).thenReturn("parent");
+        when(userUtility.returnUserFolder()).thenReturn(new File("user_enc"));
 
         String result = pathUtility.returnParentFolderPathFromFolderID(3L);
 
@@ -221,18 +231,30 @@ class PathUtilityTest {
     @Test
     void getFolderPath_whenFolderIdGreaterThanZero_ReturnsResolvedPath() throws Exception {
         when(userSession.getId()).thenReturn(2L);
-        when(userSession.getName()).thenReturn("bob");
-        when(userSession.getMail()).thenReturn("bob@example.com");
-        when(encodingUtility.encodeBase32UserFolderName(2L, "bob", "bob@example.com")).thenReturn("bob_enc");
 
         com.cloud.NetworkCloudDrive.Models.FolderMetadata folder =
                 new com.cloud.NetworkCloudDrive.Models.FolderMetadata("work", "0/7");
         folder.setId(7L);
+        folder.setParentFolderId(0L);
         when(sqLiteDAO.queryFolderMetadata(7L, 2L)).thenReturn(folder);
-        when(sqLiteDAO.findAllByIdInSQLFolderMetadata(List.of(0L, 7L), 2L)).thenReturn(List.of(folder));
+        when(encodingUtility.unifiedEncodeBase64(folder)).thenReturn("encoded_7");
+        when(userUtility.returnUserFolder()).thenReturn(new File("bob_enc"));
 
         String result = pathUtility.getFolderPath(7L);
 
-        assertEquals("bob_enc" + File.separator + "work", result);
+        assertEquals("bob_enc" + File.separator + "encoded_7", result);
+    }
+
+    @Test
+    void getFolderPath_whenFolderIdIsZero_ReturnsEncodedUserFolderWithoutDb() throws Exception {
+        when(userSession.getId()).thenReturn(1L);
+        when(userSession.getName()).thenReturn("testuser");
+        when(userSession.getMail()).thenReturn("test@example.com");
+        when(encodingUtility.encodeBase32UserFolderName(1L, "testuser", "test@example.com")).thenReturn("user_encoded");
+
+        String result = pathUtility.getFolderPath(0L);
+
+        assertEquals("user_encoded", result);
+        verifyNoInteractions(sqLiteDAO);
     }
 }

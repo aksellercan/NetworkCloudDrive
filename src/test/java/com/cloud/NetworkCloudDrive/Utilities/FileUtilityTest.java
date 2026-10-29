@@ -334,21 +334,25 @@ class FileUtilityTest {
 
     @Test
     void returnFileIfItExists_whenExists_ReturnsFile() throws IOException {
-        when(pathUtility.getFullPath("path/file.txt")).thenReturn(tempDir.resolve("file.txt"));
         Files.createFile(tempDir.resolve("file.txt"));
 
-        java.io.File result = fileUtility.returnFileIfItExists("path/file.txt");
+        java.io.File result = fileUtility.returnFileIfItExists(tempDir.resolve("file.txt").toString());
 
         assertNotNull(result);
         assertTrue(result.exists());
     }
 
     @Test
+    void returnFileIfItExists_whenNotExists_ThrowsFileNotFoundException() {
+        assertThrows(java.io.FileNotFoundException.class,
+                () -> fileUtility.returnFileIfItExists(tempDir.resolve("missing.txt").toString()));
+    }
+
+    @Test
     void returnPathIfItExists_whenExists_ReturnsPath() throws IOException {
-        when(pathUtility.getFullPath("path/file.txt")).thenReturn(tempDir.resolve("file.txt"));
         Files.createFile(tempDir.resolve("file.txt"));
 
-        Path result = fileUtility.returnPathIfItExists("path/file.txt");
+        Path result = fileUtility.returnPathIfItExists(tempDir.resolve("file.txt").toString());
 
         assertNotNull(result);
         assertTrue(Files.exists(result));
@@ -356,9 +360,26 @@ class FileUtilityTest {
 
     @Test
     void returnPathIfItExists_whenNotExists_ThrowsFileNotFoundException() {
+        assertThrows(java.io.FileNotFoundException.class,
+                () -> fileUtility.returnPathIfItExists(tempDir.resolve("missing.txt").toString()));
+    }
+
+    @Test
+    void returnPathIfItExistsOld_whenNotExists_ThrowsFileNotFoundException() {
         when(pathUtility.getFullPath("path/missing.txt")).thenReturn(tempDir.resolve("missing.txt"));
 
         assertThrows(java.io.FileNotFoundException.class,
-                () -> fileUtility.returnPathIfItExists("path/missing.txt"));
+                () -> fileUtility.returnPathIfItExistsOld("path/missing.txt"));
+    }
+
+    @Test
+    void returnPathIfItExistsOld_whenExists_ReturnsPath() throws IOException {
+        when(pathUtility.getFullPath("path/file.txt")).thenReturn(tempDir.resolve("file.txt"));
+        Files.createFile(tempDir.resolve("file.txt"));
+
+        Path result = fileUtility.returnPathIfItExistsOld("path/file.txt");
+
+        assertNotNull(result);
+        assertTrue(Files.exists(result));
     }
 }

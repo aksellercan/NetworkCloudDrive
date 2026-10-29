@@ -158,8 +158,10 @@ class ThumbnailGeneratorTest {
         assertNotNull(result);
         assertTrue(result.getId() > 0);
         assertEquals(expectedPortrait, result.isPortrait(), "Orientation flag should match image dimensions");
-        assertTrue(result.getFileName().endsWith("_thumbnail.jpg"));
-        assertTrue(result.getFileName().startsWith(encodedFileName));
+        // New naming scheme: thumbnails are named as "<uuid>.jpg"
+        assertTrue(result.getFileName().matches("[0-9a-fA-F-]{36}\\.jpg"),
+                "Thumbnail file name should be a UUID followed by .jpg, was: " + result.getFileName());
+        assertNotEquals(encodedFileName + "_thumbnail.jpg", result.getFileName());
 
         Path expectedThumbnailFile = imageUtility.getSizeFolder(userFolder.toString(), expectedPortrait)
                 .resolve(result.getFileName());

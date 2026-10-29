@@ -49,7 +49,7 @@ class FolderActionsControllerTest {
         when(encodingUtility.decodedBase32SplitArray("old_encoded")).thenReturn(new String[]{"5", "oldName", "1"});
         when(fileSystemRepository.updateFolderName("renamed", folder)).thenReturn("path/renamed");
 
-        ResponseEntity<?> result = controller.updateFolderName(dto);
+        ResponseEntity<?> result = controller.rename(dto);
 
         assertEquals(200, result.getStatusCode().value());
     }
@@ -66,7 +66,7 @@ class FolderActionsControllerTest {
         when(pathUtility.resolvePathFromIdString("0/5")).thenReturn("old_path");
         when(fileSystemRepository.moveFolder(folder, 10L)).thenReturn("new_path");
 
-        ResponseEntity<?> result = controller.moveFile(dto);
+        ResponseEntity<?> result = controller.move(dto);
 
         assertEquals(200, result.getStatusCode().value());
     }
@@ -78,7 +78,7 @@ class FolderActionsControllerTest {
         when(informationRepository.getFolderMetadata(5L)).thenReturn(folder);
         when(fileSystemRepository.removeFolder(folder)).thenReturn("path/encoded");
 
-        ResponseEntity<?> result = controller.removeFolder(5L);
+        ResponseEntity<?> result = controller.remove(5L);
 
         assertEquals(200, result.getStatusCode().value());
     }

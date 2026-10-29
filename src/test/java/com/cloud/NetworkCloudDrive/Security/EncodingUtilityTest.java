@@ -7,10 +7,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.core.env.Environment;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.security.NoSuchAlgorithmException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EncodingUtilityTest {
@@ -22,7 +25,7 @@ class EncodingUtilityTest {
 
     @BeforeEach
     void setUp() {
-        encodingUtility = new EncodingUtility();
+        encodingUtility = new EncodingUtility(new MockEnvironment());
     }
 
     @Test
@@ -153,6 +156,89 @@ class EncodingUtilityTest {
         expected.setName("folder_encoded");
         expected.setUserid(1L);
 
-        sqLiteDAO.getFolderMetadataFromEncoding(encoded, 1L);
+        when(sqLiteDAO.getFolderMetadataFromEncoding(encoded, 1L)).thenReturn(expected);
+
+        FolderMetadata result = sqLiteDAO.getFolderMetadataFromEncoding(encoded, 1L);
+
+        assertEquals(10L, result.getId());
+        assertEquals("folder_encoded", result.getName());
+        assertEquals(1L, result.getUserid());
+    }
+
+    @Test
+    void unifiedEncodeBase64_AddsRandomKeyBetweenIds() throws Exception {
+        String encoded = encodingUtility.unifiedEncodeBase64(10L, 1L);
+        String[] parts = encodingUtility.decodedBase32SplitArray(encoded);
+
+        assertEquals(3, parts.length);
+        assertEquals("10", parts[0]);
+        assertEquals(3, parts[1].length());
+        assertEquals("1", parts[2]);
+    }
+
+    @Test
+    void unifiedEncodeBase64_WithExplicitKey_KeepsKey() throws Exception {
+        String encoded = encodingUtility.unifiedEncodeBase64(10L, "ABC", 1L);
+        String[] parts = encodingUtility.decodedBase32SplitArray(encoded);
+
+        assertEquals(3, parts.length);
+        assertEquals("10", parts[0]);
+        assertEquals("ABC", parts[1]);
+        assertEquals("1", parts[2]);
+    }
+
+    @Test
+    void unifiedEncodeBase64_WithMetadata_EncodesIdsAndKey() throws Exception {
+        com.cloud.NetworkCloudDrive.Models.FileMetadata file =
+                new com.cloud.NetworkCloudDrive.Models.FileMetadata("ignored", 1L, 1L, "text/plain", 100L);
+        file.setId(20L);
+        file.setKey("KEY");
+
+        String encoded = encodingUtility.unifiedEncodeBase64(file);
+        String[] parts = encodingUtility.decodedBase32SplitArray(encoded);
+
+        assertEquals("20", parts[0]);
+        assertEquals("KEY", parts[1]);
+        assertEquals("1", parts[2]);
+    }
+
+    @Test
+    void unifiedEncodeBase64_CapsKeySizeToDefaultMax() throws Exception {
+        MockEnvironment env = new MockEnvironment();
+        env.setProperty("encode-randomize-string-size", "100");
+        EncodingUtility custom = new EncodingUtility(env);
+
+        String encoded = custom.unifiedEncodeBase64(1L, 1L);
+        String[] parts = custom.decodedBase32SplitArray(encoded);
+
+        int actualKeyLength = parts[1].length();
+        int maxSize = com.cloud.NetworkCloudDrive.Models.Enum.System.DEFAULTS.MAX_SIZE_OF_KEY.getMax_size();
+        assertTrue(actualKeyLength <= maxSize);
+        assertTrue(actualKeyLength > 0);
+    }
+
+    @Test
+    void generateKey_UsesConfiguredAlphabetAndSize() throws Exception {
+        MockEnvironment env = new MockEnvironment();
+        env.setProperty("encode-randomize-string-alphabet", "XY");
+        env.setProperty("encode-randomize-string-size", "5");
+        EncodingUtility custom = new EncodingUtility(env);
+
+        String key = custom.generateKey();
+
+        assertEquals(5, key.length());
+        for (char c : key.toCharArray()) {
+            assertTrue(c == 'X' || c == 'Y');
+        }
+    }
+
+    @Test
+    void generateKey_WithDefaultEnvironment_UsesDefaultAlphabetAndSize() throws Exception {
+        String key = encodingUtility.generateKey();
+
+        assertEquals(3, key.length());
+        key.chars().forEach(c -> assertTrue(
+                c >= 'A' && c <= 'Z',
+                "Character " + (char) c + " is outside default alphabetical range"));
     }
 }

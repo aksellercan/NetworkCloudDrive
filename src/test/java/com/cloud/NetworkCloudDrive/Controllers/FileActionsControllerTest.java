@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.ResponseEntity;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,13 +49,13 @@ class FileActionsControllerTest {
         when(informationRepository.getFileMetadata(10L)).thenReturn(metadata);
         when(fileSystemRepository.updateFileName("newname.txt", metadata)).thenReturn("path/newname.txt");
 
-        ResponseEntity<?> result = controller.updateFileName(dto);
+        ResponseEntity<?> result = controller.rename(dto);
 
         assertEquals(200, result.getStatusCode().value());
     }
 
     @Test
-    void updateFileName_NotFound_ReturnsBadRequest() throws Exception {
+    void rename_NotFound_PropagatesException() throws Exception {
         UpdateFileNameDTO dto = new UpdateFileNameDTO();
         dto.setFile_id(999L);
         dto.setName("newname.txt");
@@ -62,9 +63,7 @@ class FileActionsControllerTest {
         when(informationRepository.getFileMetadata(999L))
                 .thenThrow(new java.io.FileNotFoundException("Not found"));
 
-        ResponseEntity<?> result = controller.updateFileName(dto);
-
-        assertEquals(400, result.getStatusCode().value());
+        assertThrows(java.io.FileNotFoundException.class, () -> controller.rename(dto));
     }
 
     @Test
@@ -97,12 +96,10 @@ class FileActionsControllerTest {
     }
 
     @Test
-    void removeFile_NotFound_ReturnsBadRequest() throws Exception {
+    void removeFile_NotFound_PropagatesException() throws Exception {
         when(informationRepository.getFileMetadata(999L))
                 .thenThrow(new java.io.FileNotFoundException("Not found"));
 
-        ResponseEntity<?> result = controller.removeFile(999L);
-
-        assertEquals(400, result.getStatusCode().value());
+        assertThrows(java.io.FileNotFoundException.class, () -> controller.removeFile(999L));
     }
 }
