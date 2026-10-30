@@ -9,6 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.env.MockEnvironment;
 
 import java.io.File;
 import java.nio.file.FileSystemException;
@@ -34,7 +35,7 @@ class UserUtilityTest {
 
     @BeforeEach
     void setUp() {
-        fileStorageProperties = new FileStorageProperties();
+        fileStorageProperties = new FileStorageProperties(new MockEnvironment());
         fileStorageProperties.setBasePath(tempDir.toString() + File.separator);
         userUtility = new UserUtility(encodingUtility, fileStorageProperties, userSession);
     }

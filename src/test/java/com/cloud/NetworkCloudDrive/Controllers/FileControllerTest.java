@@ -160,11 +160,10 @@ class FileControllerTest {
 
     @Test
     void downloadFile_Success_ReturnsFile() throws Exception {
-        FileMetadata metadata = new FileMetadata("encoded", 1L, 1L, "application/pdf", 100L);
+        FileMetadata metadata = new FileMetadata("report.pdf", 1L, 1L, "application/pdf", 100L);
         metadata.setId(10L);
         when(informationRepository.getFileMetadata(10L)).thenReturn(metadata);
         when(pathUtility.getFolderPath(1L)).thenReturn("user_folder");
-        when(encodingUtility.decodedBase32SplitArray("encoded")).thenReturn(new String[]{"10", "report.pdf", "1"});
         when(fileRepository.getFile(metadata, "user_folder"))
                 .thenReturn(CompletableFuture.completedFuture(new ByteArrayResource("data".getBytes())));
 
@@ -175,34 +174,25 @@ class FileControllerTest {
         assertEquals("attachment; filename=\"report.pdf\" ", result.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
         assertEquals("application/pdf", result.getHeaders().getContentType().toString());
         assertEquals(100L, result.getHeaders().getContentLength());
+        verify(fileRepository).getFile(metadata, "user_folder");
     }
 
     @Test
-    void downloadFile_FileSystemException_ReturnsInternalServerError() throws Exception {
+    void downloadFile_FileSystemException_PropagatesException() throws Exception {
         FileMetadata metadata = new FileMetadata("encoded", 1L, 1L, "application/pdf", 100L);
         metadata.setId(10L);
         when(informationRepository.getFileMetadata(10L)).thenReturn(metadata);
         when(pathUtility.getFolderPath(1L)).thenThrow(new FileSystemException("missing_folder"));
 
-        ResponseEntity<?> result = controller.downloadFile(10L);
-
-        assertEquals(500, result.getStatusCode().value());
-        assertInstanceOf(JSONErrorResponse.class, result.getBody());
-        JSONErrorResponse body = (JSONErrorResponse) result.getBody();
-        assertEquals("Internal error occurred", body.getMessage());
+        assertThrows(FileSystemException.class, () -> controller.downloadFile(10L));
     }
 
     @Test
-    void downloadFile_MetadataNotFound_ReturnsInternalServerError() throws Exception {
+    void downloadFile_MetadataNotFound_PropagatesException() throws Exception {
         when(informationRepository.getFileMetadata(999L))
                 .thenThrow(new FileNotFoundException("Not found"));
 
-        ResponseEntity<?> result = controller.downloadFile(999L);
-
-        assertEquals(500, result.getStatusCode().value());
-        assertInstanceOf(JSONErrorResponse.class, result.getBody());
-        JSONErrorResponse body = (JSONErrorResponse) result.getBody();
-        assertEquals("Failed to download file", body.getMessage());
+        assertThrows(FileNotFoundException.class, () -> controller.downloadFile(999L));
     }
 
     @Test
@@ -212,8 +202,9 @@ class FileControllerTest {
         dto.getPath("docs"); // CreateFolderDTO's name setter is (confusingly) named getPath
         FolderMetadata created = new FolderMetadata("docs", "0/7");
         created.setId(7L);
+        created.setParentFolderId(0L);
         when(fileRepository.createFolder("docs", 0L)).thenReturn(created);
-        when(pathUtility.resolvePathFromIdString("0/7")).thenReturn("/root/user/docs");
+        when(pathUtility.renovedPathConstructor(7L)).thenReturn("user_root/docs");
 
         ResponseEntity<?> result = controller.createFolder(dto);
 
@@ -222,55 +213,42 @@ class FileControllerTest {
         FolderMetadata body = (FolderMetadata) result.getBody();
         assertEquals(7L, body.getId());
         assertEquals("docs", body.getName());
-        assertEquals("/root/user/docs", body.getPath());
+        assertEquals("user_root/docs", body.getPath());
+        verify(fileRepository).createFolder("docs", 0L);
+        verify(pathUtility).renovedPathConstructor(7L);
     }
 
     @Test
-    void createFolder_AlreadyExists_ReturnsBadRequest() throws Exception {
+    void createFolder_AlreadyExists_PropagatesException() throws Exception {
         CreateFolderDTO dto = new CreateFolderDTO();
         dto.setFolder_id(0L);
         dto.getPath("docs");
         when(fileRepository.createFolder("docs", 0L))
                 .thenThrow(new FileAlreadyExistsException("docs already exists"));
 
-        ResponseEntity<?> result = controller.createFolder(dto);
-
-        assertEquals(400, result.getStatusCode().value());
-        assertInstanceOf(JSONErrorResponse.class, result.getBody());
-        JSONErrorResponse body = (JSONErrorResponse) result.getBody();
-        assertEquals(FileAlreadyExistsException.class.getName(), body.getException_type());
+        assertThrows(FileAlreadyExistsException.class, () -> controller.createFolder(dto));
     }
 
     @Test
-    void createFolder_SecurityException_ReturnsInternalServerError() throws Exception {
+    void createFolder_SecurityException_PropagatesException() throws Exception {
         CreateFolderDTO dto = new CreateFolderDTO();
         dto.setFolder_id(0L);
         dto.getPath("docs");
         when(fileRepository.createFolder("docs", 0L))
                 .thenThrow(new SecurityException("path not allowed"));
 
-        ResponseEntity<?> result = controller.createFolder(dto);
-
-        assertEquals(500, result.getStatusCode().value());
-        assertInstanceOf(JSONErrorResponse.class, result.getBody());
-        JSONErrorResponse body = (JSONErrorResponse) result.getBody();
-        assertEquals("Security Error", body.getMessage());
+        assertThrows(SecurityException.class, () -> controller.createFolder(dto));
     }
 
     @Test
-    void createFolder_GenericException_ReturnsInternalServerError() throws Exception {
+    void createFolder_GenericException_PropagatesException() throws Exception {
         CreateFolderDTO dto = new CreateFolderDTO();
         dto.setFolder_id(0L);
         dto.getPath("docs");
         when(fileRepository.createFolder("docs", 0L))
                 .thenThrow(new RuntimeException("disk failure"));
 
-        ResponseEntity<?> result = controller.createFolder(dto);
-
-        assertEquals(500, result.getStatusCode().value());
-        assertInstanceOf(JSONErrorResponse.class, result.getBody());
-        JSONErrorResponse body = (JSONErrorResponse) result.getBody();
-        assertEquals("IO Error", body.getMessage());
+        assertThrows(RuntimeException.class, () -> controller.createFolder(dto));
     }
 
     @Test

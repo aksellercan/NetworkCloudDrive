@@ -4,6 +4,7 @@ import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
 import com.cloud.NetworkCloudDrive.Persistence.SQLiteDAO;
 import com.cloud.NetworkCloudDrive.Repositories.InformationRepository;
+import com.cloud.NetworkCloudDrive.Security.EncodingUtility;
 import com.cloud.NetworkCloudDrive.Sessions.UserSession;
 import com.cloud.NetworkCloudDrive.Utilities.FileUtility;
 import com.cloud.NetworkCloudDrive.Utilities.PathUtility;
@@ -16,7 +17,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
-import java.sql.SQLException;
 import java.time.Instant;
 import java.util.List;
 
@@ -27,19 +27,20 @@ public class InformationService implements InformationRepository {
     private final SQLiteDAO sqLiteDAO;
     private final UserSession userSession;
     private final PathUtility pathUtility;
+    private final EncodingUtility encodingUtility;
 
-
-    public InformationService(FileUtility fileUtility, SQLiteDAO sqLiteDAO, UserSession userSession, PathUtility pathUtility) {
+    public InformationService(FileUtility fileUtility, SQLiteDAO sqLiteDAO, UserSession userSession, PathUtility pathUtility, EncodingUtility encodingUtility) {
         this.fileUtility = fileUtility;
         this.userSession = userSession;
         this.sqLiteDAO = sqLiteDAO;
         this.pathUtility = pathUtility;
+        this.encodingUtility = encodingUtility;
     }
 
     @Transactional
     @Override
     public FolderMetadata getFolderMetadataByFolderIdAndName(long folderId, String name, List<Long> skipList)
-            throws FileSystemException, SQLException {
+            throws FileSystemException {
         String idPath = sqLiteDAO.getIdPath(folderId, userSession.getId());
         List<FolderMetadata> findAllByPathList = sqLiteDAO.findAllContainingSectionOfIdPathIgnoreCase(idPath, userSession.getId());
         if (findAllByPathList.isEmpty())
@@ -59,8 +60,9 @@ public class InformationService implements InformationRepository {
         return returnFolder;
     }
 
+    @Deprecated
     @Override
-    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, SQLException, FileSystemException {
+    public FileMetadata getFileMetadataOld(long id) throws FileNotFoundException, FileSystemException {
         FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
         retrievedFile.setLastUpdated(Instant.now());
         File fileCheck = fileUtility.returnFileIfItExists(
@@ -70,7 +72,18 @@ public class InformationService implements InformationRepository {
     }
 
     @Override
-    public FolderMetadata getFolderMetadata(long folderId) throws IOException, SQLException {
+    public FileMetadata getFileMetadata(long id) throws FileNotFoundException, FileSystemException {
+        FileMetadata retrievedFile = sqLiteDAO.queryFileMetadata(id, userSession.getId());
+        String fullName = encodingUtility.unifiedEncodeBase64(retrievedFile);
+        retrievedFile.setLastUpdated(Instant.now());
+        File fileCheck = fileUtility.returnFileIfItExists(
+                pathUtility.getFolderPath(retrievedFile.getFolderId()) + File.separator + fullName);
+        retrievedFile.setSize(fileCheck.length()); //bytes
+        return retrievedFile;
+    }
+
+    @Override
+    public FolderMetadata getFolderMetadata(long folderId) throws IOException {
         FolderMetadata folder = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         folder.setLastUpdated(Instant.now());
         File getFolder = fileUtility.returnFileIfItExists(pathUtility.resolvePathFromIdString(folder.getPath()));

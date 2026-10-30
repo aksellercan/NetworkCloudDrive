@@ -145,9 +145,9 @@ class MaintenanceServiceTest {
 
     @Test
     void queueScan_WhenFolderPathLookupFails_ThrowsWithoutQueueing() throws Exception {
-        when(pathUtility.getFolderPath(5L)).thenThrow(new SQLException("database down"));
+        when(pathUtility.getFolderPath(5L)).thenThrow(new java.nio.file.FileSystemException("database down"));
 
-        assertThrows(SQLException.class, () -> maintenanceService.queueScan(5L, ScanOptions.NORMAL));
+        assertThrows(java.nio.file.FileSystemException.class, () -> maintenanceService.queueScan(5L, ScanOptions.NORMAL));
 
         verify(jobExecutor, never()).queueJobs(any());
     }

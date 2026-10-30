@@ -396,7 +396,7 @@ class FileSystemServiceTest {
         when(sqLiteDAO.listAllMarkedFiles(1L, true)).thenReturn(List.of(new FileListItemDTO(markedFile)));
         when(sqLiteDAO.listAllMarkedFolders(1L, true)).thenReturn(List.of(new FolderListItemDTO(markedFolder)));
 
-        Map<String, List<?>> result = fileSystemService.collectAllMarked();
+        Map<String, List<?>> result = fileSystemService.collectAllMarked(null, null, null);
 
         List<FileListItemDTO> files = (List<FileListItemDTO>) result.get("files");
         List<FolderListItemDTO> folders = (List<FolderListItemDTO>) result.get("folders");
@@ -408,6 +408,92 @@ class FileSystemServiceTest {
         assertTrue(folders.get(0).isMarked());
         verify(sqLiteDAO).listAllMarkedFiles(1L, true);
         verify(sqLiteDAO).listAllMarkedFolders(1L, true);
+    }
+
+    @Test
+    void collectAllMarked_WithSort_DelegatesToSortAndFilterUtility() {
+        FileMetadata markedFileMetadata = new FileMetadata("enc_file", 1L, 1L, "text/plain", 100L);
+        markedFileMetadata.setId(1L);
+        markedFileMetadata.setMarked(true);
+        FileListItemDTO markedFile = new FileListItemDTO(markedFileMetadata);
+        FolderMetadata markedFolderMetadata = new FolderMetadata("enc_folder", "0/5");
+        markedFolderMetadata.setId(5L);
+        markedFolderMetadata.setMarked(true);
+        FolderListItemDTO markedFolder = new FolderListItemDTO(markedFolderMetadata);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.listAllMarkedFiles(1L, true)).thenReturn(List.of(markedFile));
+        when(sqLiteDAO.listAllMarkedFolders(1L, true)).thenReturn(List.of(markedFolder));
+        when(sortAndFilterUtility.sortFileList(
+                eq(SortListEnum.ALPHABETICAL),
+                any(),
+                any()))
+                .thenReturn(Map.of("files", List.of(markedFile), "folders", List.of(markedFolder)));
+
+        Map<String, List<?>> result = fileSystemService.collectAllMarked(SortListEnum.ALPHABETICAL, null, null);
+
+        assertEquals(1, ((List<?>) result.get("files")).size());
+        assertEquals(1, ((List<?>) result.get("folders")).size());
+        verify(sortAndFilterUtility).sortFileList(
+                eq(SortListEnum.ALPHABETICAL),
+                any(),
+                any());
+    }
+
+    @Test
+    void collectAllMarked_WithFilter_DelegatesToSortAndFilterUtility() {
+        FileMetadata markedFileMetadata = new FileMetadata("enc_file", 1L, 1L, "text/plain", 100L);
+        markedFileMetadata.setId(1L);
+        markedFileMetadata.setMarked(true);
+        FileListItemDTO markedFile = new FileListItemDTO(markedFileMetadata);
+        FolderMetadata markedFolderMetadata = new FolderMetadata("enc_folder", "0/5");
+        markedFolderMetadata.setId(5L);
+        markedFolderMetadata.setMarked(true);
+        FolderListItemDTO markedFolder = new FolderListItemDTO(markedFolderMetadata);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.listAllMarkedFiles(1L, true)).thenReturn(List.of(markedFile));
+        when(sqLiteDAO.listAllMarkedFolders(1L, true)).thenReturn(List.of(markedFolder));
+        when(sortAndFilterUtility.filterFileList(
+                eq(FilterListEnum.FILES_ONLY),
+                any(),
+                any(),
+                eq("query")))
+                .thenReturn(Map.of("files", List.of(markedFile), "folders", List.of()));
+
+        Map<String, List<?>> result = fileSystemService.collectAllMarked(null, FilterListEnum.FILES_ONLY, "query");
+
+        assertEquals(1, ((List<?>) result.get("files")).size());
+        assertTrue(((List<?>) result.get("folders")).isEmpty());
+        verify(sortAndFilterUtility).filterFileList(
+                eq(FilterListEnum.FILES_ONLY),
+                any(),
+                any(),
+                eq("query"));
+    }
+
+    @Test
+    void collectAllMarkedPageable_ReturnsPagedMarkedItems() {
+        Pageable pageable = PageRequest.of(0, 10);
+        FileMetadata markedFileMetadata = new FileMetadata("enc_file", 1L, 1L, "text/plain", 100L);
+        markedFileMetadata.setId(1L);
+        markedFileMetadata.setMarked(true);
+        FileListItemDTO markedFile = new FileListItemDTO(markedFileMetadata);
+        FolderMetadata markedFolderMetadata = new FolderMetadata("enc_folder", "0/5");
+        markedFolderMetadata.setId(5L);
+        markedFolderMetadata.setMarked(true);
+        FolderListItemDTO markedFolder = new FolderListItemDTO(markedFolderMetadata);
+
+        when(userSession.getId()).thenReturn(1L);
+        when(sqLiteDAO.listAllMarkedFilesPageable(1L, true, pageable)).thenReturn(List.of(markedFile));
+        when(sqLiteDAO.listAllMarkedFoldersPageable(1L, true, pageable)).thenReturn(List.of(markedFolder));
+
+        Map<String, List<?>> result = fileSystemService.collectAllMarkedPageable(pageable);
+
+        assertEquals(1, ((List<?>) result.get("files")).size());
+        assertEquals(1, ((List<?>) result.get("folders")).size());
+        verify(sqLiteDAO).listAllMarkedFilesPageable(1L, true, pageable);
+        verify(sqLiteDAO).listAllMarkedFoldersPageable(1L, true, pageable);
     }
 
     @Test

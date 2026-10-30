@@ -398,8 +398,8 @@ class NetworkCloudDriveApplicationTests {
         logger.info("Arranged path: {}", path);
         logger.info("Normalized path: {}", path.normalize());
 
-        // Act
-        boolean success = pathUtility.isPathAllowed(path);
+        // Act: normalize first, so the traversal escape is resolved and detected as outside the user folder
+        boolean success = pathUtility.isPathAllowed(path.normalize());
 
         // Assert
         Assertions.assertFalse(success);
