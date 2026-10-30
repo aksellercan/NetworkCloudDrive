@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -317,7 +318,8 @@ public class MaintenanceService implements MaintenanceRepository {
                 }
                 if (Files.isRegularFile(files)) {
                     scanResults.incrementDiscoveredFileCount();
-                    rebuildTableEntries(userDTO, files.toFile().getName(), true);
+                    String fileName = rebuildTableEntries(userDTO, files.toFile().getName(), true);
+                    updateEntryOnIO(fileName, files);
                     continue;
                 }
                 if (!encodingUtility.isBase32Decodable(files.getFileName().toString())) {
@@ -332,8 +334,9 @@ public class MaintenanceService implements MaintenanceRepository {
                 long folderId = getFolderId(files.getParent().toFile(), userDTO.getUserId());
                 logger.info("Enter folder handling FolderID {}", folderId);
                 scanResults.incrementDiscoveredFolderCount();
-                rebuildTableEntries(userDTO, files.toFile().getName(), false);
-                if (!scanDirectoryRebuild(userDTO, files))
+                String folderName = rebuildTableEntries(userDTO, files.toFile().getName(), false);
+                Path createdFolder = updateEntryOnIO(folderName, files);
+                if (!scanDirectoryRebuild(userDTO, createdFolder))
                     throw new RuntimeException("Failed to enter created folder");
             }
             return true;
@@ -343,23 +346,37 @@ public class MaintenanceService implements MaintenanceRepository {
         }
     }
 
-    private void rebuildTableEntries(UserDTO userDTO, String fileName, boolean isFile) {
+    private String rebuildTableEntries(UserDTO userDTO, String fileName, boolean isFile) {
         long entityId = encodingUtility.getMetadataIDFromEncodedBase64(fileName);
         String originalFileName = encodingUtility.decodedBase32SplitArray(fileName)[1];
         if (isFile) {
             FileMetadata metadata = sqLiteDAO.queryFileMetadata(entityId, userDTO.getUserId());
             if (metadata != null) {
+                String key = encodingUtility.generateKey();
+                metadata.setKey(key);
+                String encode = encodingUtility.unifiedEncodeBase64(metadata);
                 metadata.setName(originalFileName);
                 logger.info("set file metadata {}", metadata.getName());
+                sqLiteDAO.saveFile(metadata);
+                return encode;
             }
-            sqLiteDAO.saveFile(metadata);
         } else {
             FolderMetadata metadata = sqLiteDAO.queryFolderMetadata(entityId, userDTO.getUserId());
             if (metadata != null) {
                 metadata.setName(originalFileName);
+                String key = encodingUtility.generateKey();
+                metadata.setKey(key);
+                String encode = encodingUtility.unifiedEncodeBase64(metadata);
                 logger.info("set folder metadata {}", metadata.getName());
+                sqLiteDAO.saveFolder(metadata);
+                return encode;
             }
-            sqLiteDAO.saveFolder(metadata);
         }
+        return null;
+    }
+
+    protected Path updateEntryOnIO(String encodedString, Path path) throws IOException {
+        Path newName = Paths.get(path.getParent().toFile().getPath(), encodedString);
+        return Files.move(path, newName);
     }
 }

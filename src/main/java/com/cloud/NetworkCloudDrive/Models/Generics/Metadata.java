@@ -140,7 +140,7 @@ public class Metadata {
      * @param <P>    Either FileMetadata or FolderMetadata object
      * @return Either FileListItemDTO or FolderListItemDTO object depending on P object instance, if its neither returns null
      */
-    public static <T extends ListItem, P extends Metadata> Object convertToGeneric(P object) {
+    public static <P extends Metadata> ListItem convertToGeneric(P object) {
         if (object instanceof FileMetadata fileMetadata) {
             return new FileListItemDTO(fileMetadata);
         }

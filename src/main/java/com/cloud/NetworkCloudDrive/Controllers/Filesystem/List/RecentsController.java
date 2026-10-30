@@ -24,7 +24,8 @@ public class RecentsController {
     }
 
     @GetMapping(version = "3.0")
-    public ResponseEntity<?> listRecentsNew(@RequestParam(required = false) Integer page,
+    public ResponseEntity<?> listRecentsNew(@RequestParam String type,
+                                            @RequestParam(required = false) Integer page,
                                             @RequestParam(required = false) Integer size) {
         return ResponseEntity.ok(new JSONObjectArrayResponse(new Object[]{
                 fileSystemRepository.collectAllRecents(page, size)

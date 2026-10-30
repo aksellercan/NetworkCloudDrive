@@ -263,11 +263,9 @@ class NetworkCloudDriveIntegrationTests {
 
         List<FileListItemDTO> files = sqLiteDAO.getAllFilesBelongingToUserAsDTOPageable(777L, PageRequest.of(0, 10));
 
-        // SQLiteDAO.getAllFilesBelongingToUserAsDTOPageable currently returns an empty list
-        // (DTO conversion is commented out with a TODO in SQLiteDAO) - asserted to document current behaviour
-        assertNotNull(files);
-        assertTrue(files.isEmpty(),
-                "Once the DTO conversion TODO in SQLiteDAO is implemented, this should return the 2 lastUpdated files");
+        assertEquals(2, files.size(), "Only files with a non-null lastUpdated should be returned");
+        assertEquals("page_file_2.txt", files.get(0).getName());
+        assertEquals("page_file_1.txt", files.get(1).getName());
     }
 
     @Test
@@ -293,10 +291,7 @@ class NetworkCloudDriveIntegrationTests {
 
         List<FolderListItemDTO> folders = sqLiteDAO.getAllFoldersBelongingToUserAsDTOPageable(777L, PageRequest.of(0, 10));
 
-        // SQLiteDAO.getAllFoldersBelongingToUserAsDTOPageable currently returns an empty list
-        // (DTO conversion is commented out with a TODO in SQLiteDAO) - asserted to document current behaviour
-        assertNotNull(folders);
-        assertTrue(folders.isEmpty(),
-                "Once the DTO conversion TODO in SQLiteDAO is implemented, this should return the 1 lastUpdated folder");
+        assertEquals(1, folders.size(), "Only folders with a non-null lastUpdated should be returned");
+        assertEquals("page_folder_1", folders.get(0).getName());
     }
 }

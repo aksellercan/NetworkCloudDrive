@@ -85,7 +85,7 @@ public class EncodingUtility {
 
     private String randomizeString(int size) {
         Random random = new Random();
-        String alphabet = env.getProperty("encode-randomize-string-alphabet", "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+        String alphabet = env.getProperty("encode-randomize-string-alphabet", "ABCDEFGHIJKLMNOPQRSTUVWXYZ").replace("\"", "");
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < size; i++) {
             sb.append(alphabet.charAt(random.nextInt(alphabet.length())));

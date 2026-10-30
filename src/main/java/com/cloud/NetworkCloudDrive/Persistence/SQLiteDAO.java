@@ -264,8 +264,7 @@ public class SQLiteDAO {
     public List<FileListItemDTO> getAllFilesBelongingToUserAsDTOPageable(long userId, Pageable pageable) {
         // queries all folders where user id = x then orders by lastupdated descending
         Page<FileMetadata> list = sqLiteFileRepository.findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(userId, pageable);
-//        return decodeNamesAndReturnList(list);
-        return new ArrayList<>();
+        return decodeNamesAndReturnList(list.toList());
     }
 
     @Transactional
@@ -285,9 +284,10 @@ public class SQLiteDAO {
             if (encodingUtility.isBase32Decodable(listItemDTO.getName())) {
                 listItemDTO.setName(encodingUtility.decodedBase32SplitArray(listItemDTO.getName())[1]);
             }
-            T converted = (T) Metadata.convertToGeneric(listItemDTO);
-            if (converted != null) {
-                returnList.add(converted);
+            Object converted = Metadata.convertToGeneric(listItemDTO);
+            if (converted instanceof FileListItemDTO || converted instanceof FolderListItemDTO) {
+                // suppress ambiguous cast type
+                returnList.add((T) converted);
             }
         }
         return returnList;
@@ -296,8 +296,7 @@ public class SQLiteDAO {
     @Transactional
     public List<FolderListItemDTO> getAllFoldersBelongingToUserAsDTOPageable(long userId, Pageable pageable) {
         Page<FolderMetadata> list = sqLiteFolderRepository.findAllByUseridAndLastUpdatedNotNullOrderByLastUpdatedDesc(userId, pageable);
-//        return decodeNamesAndReturnList(list);
-        return new ArrayList<>();
+        return decodeNamesAndReturnList(list.toList());
     }
 
     public ThumbnailMetadata queryThumbnailMetadataUsingFileId(long fileId, long userId) {
