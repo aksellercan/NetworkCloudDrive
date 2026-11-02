@@ -124,8 +124,12 @@ public class FolderMetadata {
         return markDate;
     }
 
-    public void setMarkDate() {
+    public void updateMarkDate() {
         this.markDate = Instant.now();
+    }
+
+    public void setMarkDate(Instant markDate) {
+        this.markDate = markDate;
     }
 
     @Override
