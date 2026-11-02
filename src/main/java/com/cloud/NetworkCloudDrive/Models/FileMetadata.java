@@ -36,7 +36,7 @@ public class FileMetadata {
     private Instant lastUpdated;
 
     @ColumnDefault("false")
-    private boolean marked = false;
+    private Boolean marked = false;
 
     private Instant markDate;
 
@@ -48,7 +48,7 @@ public class FileMetadata {
         this.size = size;
     }
 
-    public FileMetadata(String name, Long folderId, Long userid, String mimiType, Instant markDate, boolean marked, Long size) {
+    public FileMetadata(String name, Long folderId, Long userid, String mimiType, Instant markDate, Boolean marked, Long size) {
         this.name = name;
         this.folderId = folderId;
         this.markDate = markDate;
@@ -151,11 +151,11 @@ public class FileMetadata {
         this.hasThumbnail = hasThumbnail;
     }
 
-    public boolean isMarked() {
+    public Boolean isMarked() {
         return marked;
     }
 
-    public void setMarked(boolean marked) {
+    public void setMarked(Boolean marked) {
         this.marked = marked;
     }
 

@@ -30,7 +30,7 @@ public class FolderMetadata {
     private Instant lastUpdated;
 
     @ColumnDefault("false")
-    private boolean marked = false;
+    private Boolean marked = false;
 
     private Instant markDate;
 
@@ -39,7 +39,7 @@ public class FolderMetadata {
         this.path = path;
     }
 
-    public FolderMetadata(String name, String path, Instant markDate, boolean marked) {
+    public FolderMetadata(String name, String path, Instant markDate, Boolean marked) {
         this.name = name;
         this.path = path;
         this.marked = marked;
@@ -112,11 +112,11 @@ public class FolderMetadata {
         this.name = name;
     }
 
-    public boolean isMarked() {
+    public Boolean isMarked() {
         return marked;
     }
 
-    public void setMarked(boolean marked) {
+    public void setMarked(Boolean marked) {
         this.marked = marked;
     }
 

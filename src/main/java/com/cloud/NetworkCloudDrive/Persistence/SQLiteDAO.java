@@ -389,7 +389,7 @@ public class SQLiteDAO {
         dummyFileMetadata.setCreatedAt(null);
         dummyFileMetadata.setHasThumbnail(false);
         //add new properties
-        dummyFileMetadata.setMarked(false);
+        dummyFileMetadata.setMarked(null);
         dummyFileMetadata.setMarkDate(null);
         Example<FileMetadata> fileMetadataWithoutThumbnailExample = Example.of(dummyFileMetadata);
         Optional<FileMetadata> optionalFileMetadataWithoutThumbnail = sqLiteFileRepository.findOne(fileMetadataWithoutThumbnailExample);
@@ -416,7 +416,7 @@ public class SQLiteDAO {
         dummyFolderMetadata.setCreatedAt(null);
         dummyFolderMetadata.setUserid(userId); //current logged-in user id
         //add new attributes
-        dummyFolderMetadata.setMarked(false);
+        dummyFolderMetadata.setMarked(null);
         dummyFolderMetadata.setMarkDate(null);
         Example<FolderMetadata> folderMetadataExample = Example.of(dummyFolderMetadata);
         Optional<FolderMetadata> optionalFolderMetadata = sqLiteFolderRepository.findOne(folderMetadataExample);
