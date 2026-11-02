@@ -21,11 +21,6 @@ public class APIComponent {
 
     @PostConstruct
     public void logAPIVersionOnStartup() {
-        String version = getAPIVersion();
-        String message = "";
-        if (version.contains("SNAPSHOT")) {
-            message = "Development Build";
-        }
-        logger.info("API Version: {} {}", version, message);
+        logger.info("API Version: {}", getAPIVersion());
     }
 }
