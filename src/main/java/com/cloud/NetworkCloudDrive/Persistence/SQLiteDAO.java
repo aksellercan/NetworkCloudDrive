@@ -388,6 +388,9 @@ public class SQLiteDAO {
         dummyFileMetadata.setId(null);
         dummyFileMetadata.setCreatedAt(null);
         dummyFileMetadata.setHasThumbnail(false);
+        //add new properties
+        dummyFileMetadata.setMarked(null);
+        dummyFileMetadata.setMarkDate(null);
         Example<FileMetadata> fileMetadataWithoutThumbnailExample = Example.of(dummyFileMetadata);
         Optional<FileMetadata> optionalFileMetadataWithoutThumbnail = sqLiteFileRepository.findOne(fileMetadataWithoutThumbnailExample);
         logger.info("Example without thumbnail {}", dummyFileMetadata);
@@ -412,6 +415,9 @@ public class SQLiteDAO {
         dummyFolderMetadata.setId(null);
         dummyFolderMetadata.setCreatedAt(null);
         dummyFolderMetadata.setUserid(userId); //current logged-in user id
+        //add new attributes
+        dummyFolderMetadata.setMarked(null);
+        dummyFolderMetadata.setMarkDate(null);
         Example<FolderMetadata> folderMetadataExample = Example.of(dummyFolderMetadata);
         Optional<FolderMetadata> optionalFolderMetadata = sqLiteFolderRepository.findOne(folderMetadataExample);
         logger.info("Example folder: {}", dummyFolderMetadata);
@@ -474,6 +480,34 @@ public class SQLiteDAO {
     public void deleteAllUserRelatedEntries(long userId) {
         sqLiteFileRepository.deleteAllByUserid(userId);
         sqLiteFolderRepository.deleteAllByUserid(userId);
+    }
+
+    @Transactional
+    public List<FileListItemDTO> listAllMarkedFilesPageable(long userId, boolean marked, Pageable pageable) {
+        Page<FileMetadata> fileMetadataPage = sqLiteFileRepository.findAllByUseridAndMarkedOrderByMarkDateDesc(userId, marked, pageable);
+        List<FileListItemDTO> fileListItemDTOS = new ArrayList<>();
+        for (FileMetadata fileMetadata : fileMetadataPage) {
+            FileListItemDTO fileListItemDTO = new FileListItemDTO(fileMetadata);
+            if (encodingUtility.isBase32Decodable(fileMetadata.getName())) {
+                fileListItemDTO.setName(encodingUtility.decodedBase32SplitArray(fileMetadata.getName())[1]);
+            }
+            fileListItemDTOS.add(fileListItemDTO);
+        }
+        return fileListItemDTOS;
+    }
+
+    @Transactional
+    public List<FolderListItemDTO> listAllMarkedFoldersPageable(long userId, boolean marked, Pageable pageable) {
+        Page<FolderMetadata> folderMetadataPage = sqLiteFolderRepository.findAllByUseridAndMarkedOrderByMarkDateDesc(userId, marked, pageable);
+        List<FolderListItemDTO> folderListItemDTOS = new ArrayList<>();
+        for (FolderMetadata folderMetadata : folderMetadataPage) {
+            FolderListItemDTO folderListItemDTO = new FolderListItemDTO(folderMetadata);
+            if (encodingUtility.isBase32Decodable(folderMetadata.getName())) {
+                folderListItemDTO.setName(encodingUtility.decodedBase32SplitArray(folderMetadata.getName())[1]);
+            }
+            folderListItemDTOS.add(folderListItemDTO);
+        }
+        return folderListItemDTOS;
     }
 
     @Transactional

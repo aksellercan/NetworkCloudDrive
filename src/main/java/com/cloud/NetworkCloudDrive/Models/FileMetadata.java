@@ -36,11 +36,23 @@ public class FileMetadata {
     private Instant lastUpdated;
 
     @ColumnDefault("false")
-    private boolean marked = false;
+    private Boolean marked = false;
+
+    private Instant markDate;
 
     public FileMetadata(String name, Long folderId, Long userid, String mimiType, Long size) {
         this.name = name;
         this.folderId = folderId;
+        this.userid = userid;
+        this.mimiType = mimiType;
+        this.size = size;
+    }
+
+    public FileMetadata(String name, Long folderId, Long userid, String mimiType, Instant markDate, Boolean marked, Long size) {
+        this.name = name;
+        this.folderId = folderId;
+        this.markDate = markDate;
+        this.marked = marked;
         this.userid = userid;
         this.mimiType = mimiType;
         this.size = size;
@@ -59,6 +71,7 @@ public class FileMetadata {
         this.createdAt = fileMetadata.createdAt;
         this.hasThumbnail = fileMetadata.hasThumbnail;
         this.lastUpdated = fileMetadata.lastUpdated;
+        this.markDate = fileMetadata.markDate;
         this.marked = fileMetadata.marked;
     }
 
@@ -138,12 +151,24 @@ public class FileMetadata {
         this.hasThumbnail = hasThumbnail;
     }
 
-    public boolean isMarked() {
+    public Boolean isMarked() {
         return marked;
     }
 
-    public void setMarked(boolean marked) {
+    public void setMarked(Boolean marked) {
         this.marked = marked;
+    }
+
+    public Instant getMarkDate() {
+        return markDate;
+    }
+
+    public void updateMarkDate() {
+        this.markDate = Instant.now();
+    }
+
+    public void setMarkDate(Instant markDate) {
+        this.markDate = markDate;
     }
 
     @Override
@@ -159,6 +184,7 @@ public class FileMetadata {
                 ", hasThumbnail=" + hasThumbnail +
                 ", lastUpdated=" + lastUpdated +
                 ", marked=" + marked +
+                ", markDate=" + markDate +
                 '}';
     }
 }
