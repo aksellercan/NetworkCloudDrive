@@ -32,7 +32,9 @@ public class UserService implements UserRepository {
             SQLiteDAO sqLiteDAO,
             PasswordEncoder passwordEncoder,
             EncodingUtility encodingUtility,
-            UserUtility userUtility, ThumbnailRepository thumbnailRepository, FileUtility fileUtility) {
+            UserUtility userUtility,
+            ThumbnailRepository thumbnailRepository,
+            FileUtility fileUtility) {
         this.sqLiteDAO = sqLiteDAO;
         this.encodingUtility = encodingUtility;
         this.passwordEncoder = passwordEncoder;
@@ -43,8 +45,7 @@ public class UserService implements UserRepository {
 
     @Override
     public CurrentUserDTO currentUserDetails(String mail) {
-        UserEntity user = sqLiteDAO.findUserByMail(mail);
-        return new CurrentUserDTO(user.getId(), user.getName(), user.getMail(), user.getRole(), user.getLastLogin());
+        return new CurrentUserDTO(sqLiteDAO.findUserByMail(mail));
     }
 
     @Override
@@ -61,13 +62,14 @@ public class UserService implements UserRepository {
     }
 
     @Override
-    public boolean loginUser(String name, String mail, String password) throws SQLException {
+    public boolean loginUser(String name, String mail, String password) {
         return passwordEncoder.matches(password, sqLiteDAO.findUserByMail(mail).getPassword());
     }
 
     @Override
     public CurrentUserDTO updatePassword(UserEntity user, String newPassword) {
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.onPasswordChange();
         sqLiteDAO.saveUser(user);
         return new CurrentUserDTO(user.getId(), user.getName(), user.getMail(), user.getRole(), user.getLastLogin());
     }
@@ -99,6 +101,7 @@ public class UserService implements UserRepository {
         return deletionResults;
     }
 
+    //TODO first needs division between roles to be implemented
     @Override
     public boolean elevateUserPrivileges() {
         return false;
