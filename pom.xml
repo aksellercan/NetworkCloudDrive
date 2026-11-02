@@ -35,13 +35,13 @@
         <dependency>
             <groupId>org.xerial</groupId>
             <artifactId>sqlite-jdbc</artifactId>
-            <version>3.53.4.0</version>
+            <version>3.54.1.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.tika/tika-core -->
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-core</artifactId>
-            <version>4.1.0</version>
+            <version>4.2.0</version>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/net.coobird/thumbnailator -->
         <dependency>
