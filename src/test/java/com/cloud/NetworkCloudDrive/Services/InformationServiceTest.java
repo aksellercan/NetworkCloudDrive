@@ -3,6 +3,7 @@ package com.cloud.NetworkCloudDrive.Services;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
 import com.cloud.NetworkCloudDrive.Persistence.SQLiteDAO;
+import com.cloud.NetworkCloudDrive.Security.EncodingUtility;
 import com.cloud.NetworkCloudDrive.Sessions.UserSession;
 import com.cloud.NetworkCloudDrive.Utilities.FileUtility;
 import com.cloud.NetworkCloudDrive.Utilities.PathUtility;
@@ -15,7 +16,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.FileSystemException;
-import java.sql.SQLException;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,31 +34,54 @@ class InformationServiceTest {
     private UserSession userSession;
     @Mock
     private PathUtility pathUtility;
+    @Mock
+    private EncodingUtility encodingUtility;
 
     private InformationService informationService;
 
     @BeforeEach
     void setUp() {
-        informationService = new InformationService(fileUtility, sqLiteDAO, userSession, pathUtility);
+        informationService = new InformationService(fileUtility, sqLiteDAO, userSession, pathUtility, encodingUtility);
     }
 
     @Test
-    void getFileMetadata_FileExists_ReturnsMetadataWithSize() throws Exception {
+    void getFileMetadata_FileExists_ReturnsMetadataWithEncodedPathSize() throws Exception {
+        FileMetadata metadata = new FileMetadata("test.txt", 1L, 1L, "text/plain", 100L);
+        metadata.setId(10L);
+        when(sqLiteDAO.queryFileMetadata(10L, 0L)).thenReturn(metadata);
+        when(userSession.getId()).thenReturn(0L);
+        when(encodingUtility.unifiedEncodeBase64(metadata)).thenReturn("encoded_file");
+        when(pathUtility.getFolderPath(1L)).thenReturn("user_folder");
+        File mockFile = mock(File.class);
+        when(mockFile.length()).thenReturn(200L);
+        when(fileUtility.returnFileIfItExists("user_folder/encoded_file")).thenReturn(mockFile);
+
+        FileMetadata result = informationService.getFileMetadata(10L);
+
+        assertEquals(10L, result.getId());
+        assertEquals(200L, result.getSize());
+        assertNotNull(result.getLastUpdated());
+        verify(sqLiteDAO).queryFileMetadata(10L, 0L);
+        verify(fileUtility).returnFileIfItExists("user_folder/encoded_file");
+    }
+
+    @Test
+    void getFileMetadataOld_FileExists_ReturnsMetadataWithNamePath() throws Exception {
         FileMetadata metadata = new FileMetadata("test.txt", 1L, 1L, "text/plain", 100L);
         metadata.setId(10L);
         when(sqLiteDAO.queryFileMetadata(10L, 0L)).thenReturn(metadata);
         when(userSession.getId()).thenReturn(0L);
         when(pathUtility.getFolderPath(1L)).thenReturn("user_folder");
         File mockFile = mock(File.class);
-        when(mockFile.length()).thenReturn(200L);
-        when(fileUtility.returnFileIfItExists(anyString())).thenReturn(mockFile);
+        when(mockFile.length()).thenReturn(300L);
+        when(fileUtility.returnFileIfItExists("user_folder/test.txt")).thenReturn(mockFile);
 
-        FileMetadata result = informationService.getFileMetadata(10L);
+        FileMetadata result = informationService.getFileMetadataOld(10L);
 
         assertEquals(10L, result.getId());
-        assertEquals(200L, result.getSize());
-        verify(sqLiteDAO).queryFileMetadata(10L, 0L);
-        verify(fileUtility).returnFileIfItExists(anyString());
+        assertEquals(300L, result.getSize());
+        assertNotNull(result.getLastUpdated());
+        verify(fileUtility).returnFileIfItExists("user_folder/test.txt");
     }
 
     @Test
@@ -85,11 +108,12 @@ class InformationServiceTest {
     }
 
     @Test
-    void getFolderMetadata_DaoError_ThrowsException() throws Exception {
-        when(sqLiteDAO.queryFolderMetadata(5L, 0L)).thenThrow(new SQLException("DB error"));
+    void getFolderMetadata_DaoError_ThrowsException() {
+        // queryFolderMetadata does not declare checked exceptions, so users get an unchecked error
+        when(sqLiteDAO.queryFolderMetadata(5L, 0L)).thenThrow(new RuntimeException("DB error"));
         when(userSession.getId()).thenReturn(0L);
 
-        assertThrows(SQLException.class, () -> informationService.getFolderMetadata(5L));
+        assertThrows(RuntimeException.class, () -> informationService.getFolderMetadata(5L));
     }
 
     @Test

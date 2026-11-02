@@ -9,6 +9,7 @@ import com.cloud.NetworkCloudDrive.Models.ThumbnailMetadata;
 import com.cloud.NetworkCloudDrive.Repositories.Maintenance.ThumbnailRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -30,6 +31,7 @@ public class ThumbnailController {
     }
 
     @GetMapping(value = "get", version = "1.0")
+    @Cacheable("thumbnail")
     public @ResponseBody ResponseEntity<?> getThumbnailByID(@RequestParam long thumbId) {
         try {
             ThumbnailMetadata thumbnailMetadata = thumbnailRepository.getThumbnailByID(thumbId);
@@ -50,6 +52,7 @@ public class ThumbnailController {
     }
 
     @GetMapping(value = "getbyfileid", version = "1.0")
+    @Cacheable("thumbnail")
     public @ResponseBody ResponseEntity<?> getThumbnailByFileID(@RequestParam long fileId) {
         try {
             ThumbnailMetadata thumbnailMetadata = thumbnailRepository.getThumbnailByFileID(fileId);

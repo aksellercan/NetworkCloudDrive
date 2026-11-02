@@ -120,14 +120,9 @@ class NetworkCloudDriveIntegrationTests {
         FileMetadata saved = sqLiteDAO.saveFile(file);
         long id = saved.getId();
 
-        boolean removed = false;
         sqLiteDAO.deleteFile(saved);
-        try {
-            sqLiteDAO.findFileMetadataById(id);
-        } catch (Exception e) {
-            removed = true;
-        }
-        assertTrue(removed);
+        // findFileMetadataById returns null (instead of throwing) when the file is gone
+        assertNull(sqLiteDAO.findFileMetadataById(id));
     }
 
     @Test
@@ -268,11 +263,9 @@ class NetworkCloudDriveIntegrationTests {
 
         List<FileListItemDTO> files = sqLiteDAO.getAllFilesBelongingToUserAsDTOPageable(777L, PageRequest.of(0, 10));
 
-        assertEquals(2, files.size());
-        assertEquals(Arrays.asList(
-                Instant.parse("2026-07-01T00:00:00Z"),
-                Instant.parse("2026-06-01T00:00:00Z")
-        ), files.stream().map(FileListItemDTO::getLastAccessedAt).toList());
+        assertEquals(2, files.size(), "Only files with a non-null lastUpdated should be returned");
+        assertEquals("page_file_2.txt", files.get(0).getName());
+        assertEquals("page_file_1.txt", files.get(1).getName());
     }
 
     @Test
@@ -298,9 +291,7 @@ class NetworkCloudDriveIntegrationTests {
 
         List<FolderListItemDTO> folders = sqLiteDAO.getAllFoldersBelongingToUserAsDTOPageable(777L, PageRequest.of(0, 10));
 
-        assertEquals(1, folders.size());
-        assertEquals(List.of(
-                Instant.parse("2026-06-01T00:00:00Z")
-        ), folders.stream().map(FolderListItemDTO::getLastAccessedAt).toList());
+        assertEquals(1, folders.size(), "Only folders with a non-null lastUpdated should be returned");
+        assertEquals("page_folder_1", folders.get(0).getName());
     }
 }

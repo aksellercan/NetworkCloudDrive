@@ -75,15 +75,15 @@ class FileServiceTest {
     @Test
     void storeFile_CreatesDirectoriesAndWritesFile() throws Exception {
         String fileName = "encoded_test_file.abc";
-        String parentPath = "user_folder_encoded";
+        String parentPath = tempDir.resolve("user_folder_encoded").toString();
         String content = "test file content";
         InputStream inputStream = new ByteArrayInputStream(content.getBytes());
 
-        Path userDirectory = tempDir.resolve(parentPath);
+        Path userDirectory = Path.of(parentPath);
         Path filePath = userDirectory.resolve(fileName);
 
         when(pathUtility.getBasePath()).thenReturn(tempDir);
-        when(pathUtility.isPathAllowed(filePath)).thenReturn(true);
+        when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
         when(pathUtility.isFilenameAllowed(fileName)).thenReturn(true);
 
         Path result = fileService.storeFile(inputStream, fileName, parentPath).get();
@@ -94,23 +94,21 @@ class FileServiceTest {
     }
 
     @Test
-    void storeFile_WhenPathNotAllowed_ThrowsIOException() throws Exception {
+    void storeFile_WhenPathNotAllowed_ThrowsSecurityException() throws Exception {
         String fileName = "test.txt";
-        String parentPath = "user_folder";
+        String parentPath = tempDir.resolve("user_folder").toString();
 
-        when(pathUtility.getBasePath()).thenReturn(tempDir);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(false);
 
-        assertThrows(IOException.class,
+        assertThrows(SecurityException.class,
                 () -> fileService.storeFile(new ByteArrayInputStream(new byte[0]), fileName, parentPath));
     }
 
     @Test
     void storeFile_WhenFilenameNotAllowed_ThrowsIOException() throws Exception {
         String fileName = "../evil.txt";
-        String parentPath = "user_folder";
+        String parentPath = tempDir.resolve("user_folder").toString();
 
-        when(pathUtility.getBasePath()).thenReturn(tempDir);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
         when(pathUtility.isFilenameAllowed(fileName)).thenReturn(false);
 
@@ -127,12 +125,14 @@ class FileServiceTest {
 
     @Test
     void storeFile_ReturnsCompletableFuture() throws Exception {
+        Path parentDirectory = Files.createDirectories(tempDir.resolve("dir"));
+
         when(pathUtility.getBasePath()).thenReturn(tempDir);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
         when(pathUtility.isFilenameAllowed(anyString())).thenReturn(true);
 
         CompletableFuture<Path> future = fileService.storeFile(
-                new ByteArrayInputStream("data".getBytes()), "file.txt", "dir");
+                new ByteArrayInputStream("data".getBytes()), "file.txt", parentDirectory.toString());
 
         assertNotNull(future);
         assertTrue(future.isDone(), "completedFuture should already be done");
@@ -141,17 +141,19 @@ class FileServiceTest {
     @Test
     void getFile_WhenFileExists_ReturnsResource() throws Exception {
         String fileName = "encoded_file.xyz";
-        String path = "user_folder";
+        String path = tempDir.resolve("user_folder").toString();
         String content = "test data";
 
-        Path fullPath = tempDir.resolve(path).resolve(fileName);
+        Path fullPath = Path.of(path).resolve(fileName);
         Files.createDirectories(fullPath.getParent());
         Files.writeString(fullPath, content);
 
-        when(pathUtility.getFullPathToString(path)).thenReturn(tempDir.resolve(path).toString());
+        when(encodingUtility.unifiedEncodeBase64(any(FileMetadata.class))).thenReturn(fileName);
         when(pathUtility.getBasePath()).thenReturn(Path.of("/unrelated/base"));
 
         FileMetadata fileMetadata = new FileMetadata(fileName, 0L, 1L, "text/plain", 9L);
+        fileMetadata.setId(10L);
+        fileMetadata.setKey("KEY");
 
         Resource resource = fileService.getFile(fileMetadata, path).get();
 
@@ -160,14 +162,15 @@ class FileServiceTest {
         try (var is = resource.getInputStream()) {
             assertEquals(content, new String(is.readAllBytes()));
         }
+        verify(sqLiteDAO).saveFile(fileMetadata);
     }
 
     @Test
     void getFile_WhenFileDoesNotExist_ThrowsException() throws Exception {
         String fileName = "nonexistent.txt";
-        String path = "user_folder";
+        String path = tempDir.resolve("user_folder").toString();
 
-        when(pathUtility.getFullPathToString(path)).thenReturn(tempDir.resolve(path).toString());
+        when(encodingUtility.unifiedEncodeBase64(any(FileMetadata.class))).thenReturn(fileName);
         when(pathUtility.getBasePath()).thenReturn(Path.of("/unrelated/base"));
 
         FileMetadata fileMetadata = new FileMetadata(fileName, 0L, 1L, "text/plain", 0L);
@@ -177,15 +180,12 @@ class FileServiceTest {
     }
 
     @Test
-    void getFile_WhenUnauthorized_ThrowsSecurityException() throws Exception {
+    void getFile_WhenFilePathUnderBase_ThrowsSecurityException() throws Exception {
         String fileName = "test.txt";
-        String path = "subdir";
+        String path = Files.createDirectories(tempDir.resolve("subdir")).resolve(fileName).toString();
 
-        when(pathUtility.getFullPathToString(path)).thenReturn(tempDir.resolve(path).toString());
+        when(encodingUtility.unifiedEncodeBase64(any(FileMetadata.class))).thenReturn(fileName);
         when(pathUtility.getBasePath()).thenReturn(tempDir);
-
-        Path filePath = Files.createDirectories(tempDir.resolve(path));
-        Files.writeString(filePath.resolve(fileName), "data");
 
         FileMetadata fileMetadata = new FileMetadata(fileName, 0L, 1L, "text/plain", 4L);
 
@@ -203,17 +203,15 @@ class FileServiceTest {
     @Test
     void getFile_ReturnsCompletableFuture() throws Exception {
         String fileName = "existing.txt";
-        String path = "some_dir";
-
-        Path dir = Files.createDirectories(tempDir.resolve(path));
+        Path dir = Files.createDirectories(tempDir.resolve("some_dir"));
         Files.writeString(dir.resolve(fileName), "content");
 
-        when(pathUtility.getFullPathToString(path)).thenReturn(dir.toString());
+        when(encodingUtility.unifiedEncodeBase64(any(FileMetadata.class))).thenReturn(fileName);
         when(pathUtility.getBasePath()).thenReturn(Path.of("/unrelated/base"));
 
         FileMetadata fileMetadata = new FileMetadata(fileName, 0L, 1L, "text/plain", 7L);
 
-        CompletableFuture<Resource> future = fileService.getFile(fileMetadata, path);
+        CompletableFuture<Resource> future = fileService.getFile(fileMetadata, dir.toString());
 
         assertNotNull(future);
         assertTrue(future.isDone(), "completedFuture should already be done");
@@ -223,12 +221,12 @@ class FileServiceTest {
     void uploadFiles_SingleFile_ReturnsUploadedCount() throws Exception {
         MockMultipartFile file = new MockMultipartFile("files", "test.txt", "text/plain", "hello world".getBytes());
         MockMultipartFile[] files = new MockMultipartFile[]{file};
+        String folderPath = Files.createDirectories(tempDir.resolve("user").resolve("folder")).toString();
 
-        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
         when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of());
-        when(pathUtility.isFilenameAllowed("test.txt")).thenReturn(true);
-        when(pathUtility.isFilenameAllowed(encode(1, "test.txt", 1))).thenReturn(true);
-        when(encodingUtility.encodeBase32FileName(anyLong(), eq("test.txt"), anyLong())).thenReturn(encode(1, "test.txt", 1));
+        when(pathUtility.isFilenameAllowed(anyString())).thenReturn(true);
+        when(encodingUtility.generateKey()).thenReturn("ABC");
+        when(encodingUtility.unifiedEncodeBase64(anyLong(), anyString(), anyLong())).thenReturn(encode(1, "test.txt", 1));
         when(userSession.getId()).thenReturn(1L);
         when(pathUtility.getBasePath()).thenReturn(tempDir);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
@@ -241,10 +239,11 @@ class FileServiceTest {
         }).when(sqLiteDAO).persistObjects(any());
         doAnswer(invocation -> invocation.getArgument(0)).when(sqLiteDAO).saveFile(any());
 
-        Map<String, ?> result = fileService.uploadFiles(files, "user/folder", 1L);
+        Map<String, ?> result = fileService.uploadFiles(files, folderPath, 1L);
 
         assertEquals(1, result.get("uploaded_file_count"));
         assertTrue(result.containsKey("files"));
+        verify(sequentialJobExecutor, never()).queueJobs(any());
     }
 
     @Test
@@ -252,14 +251,14 @@ class FileServiceTest {
         MockMultipartFile file = new MockMultipartFile("files", "test.txt", "text/plain", "data".getBytes());
         MockMultipartFile[] files = new MockMultipartFile[]{file};
         Path existingFile = tempDir.resolve("existing_encoded_file");
+        String folderPath = Files.createDirectories(tempDir.resolve("user").resolve("folder")).toString();
 
-        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
         when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of(existingFile));
         when(pathUtility.isFilenameAllowed("test.txt")).thenReturn(true);
         when(fileUtility.checkDuplicate(anyList(), eq("test.txt"))).thenReturn(true);
 
         assertThrows(java.nio.file.FileAlreadyExistsException.class,
-                () -> fileService.uploadFiles(files, "user/folder", 1L));
+                () -> fileService.uploadFiles(files, folderPath, 1L));
     }
 
     @Test
@@ -267,13 +266,14 @@ class FileServiceTest {
         MockMultipartFile valid = new MockMultipartFile("files", "valid.txt", "text/plain", "ok".getBytes());
         MockMultipartFile invalid = new MockMultipartFile("files", "../bad.txt", "text/plain", "nope".getBytes());
         MockMultipartFile[] files = new MockMultipartFile[]{valid, invalid};
+        String folderPath = Files.createDirectories(tempDir.resolve("user").resolve("folder")).toString();
 
-        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
         when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of());
         when(pathUtility.isFilenameAllowed("valid.txt")).thenReturn(true);
         when(pathUtility.isFilenameAllowed("../bad.txt")).thenReturn(false);
         when(pathUtility.isFilenameAllowed(encode(1, "valid.txt", 1))).thenReturn(true);
-        when(encodingUtility.encodeBase32FileName(anyLong(), eq("valid.txt"), anyLong())).thenReturn(encode(1, "valid.txt", 1));
+        when(encodingUtility.generateKey()).thenReturn("ABC");
+        when(encodingUtility.unifiedEncodeBase64(anyLong(), anyString(), anyLong())).thenReturn(encode(1, "valid.txt", 1));
         when(userSession.getId()).thenReturn(1L);
         when(pathUtility.getBasePath()).thenReturn(tempDir);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
@@ -286,7 +286,7 @@ class FileServiceTest {
         }).when(sqLiteDAO).persistObjects(any());
         doAnswer(invocation -> invocation.getArgument(0)).when(sqLiteDAO).saveFile(any());
 
-        Map<String, ?> result = fileService.uploadFiles(files, "user/folder", 1L);
+        Map<String, ?> result = fileService.uploadFiles(files, folderPath, 1L);
 
         assertEquals(1, result.get("uploaded_file_count"));
         assertTrue(result.containsKey("files"));
@@ -296,13 +296,13 @@ class FileServiceTest {
     void uploadFiles_AllFilesSkipped_ThrowsException() throws Exception {
         MockMultipartFile file = new MockMultipartFile("files", "../evil.txt", "text/plain", "data".getBytes());
         MockMultipartFile[] files = new MockMultipartFile[]{file};
+        String folderPath = tempDir.resolve("user").resolve("folder").toString();
 
-        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
         when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of());
         when(pathUtility.isFilenameAllowed("../evil.txt")).thenReturn(false);
 
         assertThrows(java.nio.file.FileAlreadyExistsException.class,
-                () -> fileService.uploadFiles(files, "user/folder", 1L));
+                () -> fileService.uploadFiles(files, folderPath, 1L));
     }
 
     @Test
@@ -310,9 +310,8 @@ class FileServiceTest {
         String folderName = "myfolder";
         long folderId = 5L;
 
-        Path parentDir = Files.createDirectories(tempDir.resolve("user/folder_5"));
+        Path parentDir = Files.createDirectories(tempDir.resolve("user").resolve("folder_5"));
 
-        when(sqLiteDAO.getIdPath(folderId, 1L)).thenReturn("0/5");
         when(pathUtility.getFolderPath(folderId)).thenReturn("user/folder_5");
         when(pathUtility.getFullPathToString("user/folder_5")).thenReturn(parentDir.toString());
         when(pathUtility.isFilenameAllowed(folderName)).thenReturn(true);
@@ -323,7 +322,8 @@ class FileServiceTest {
             return null;
         }).when(sqLiteDAO).persistObjects(any(FolderMetadata.class));
 
-        when(encodingUtility.encodeBase32FolderName(anyLong(), eq(folderName), anyLong())).thenReturn(encode(10, "myfolder", 1));
+        when(encodingUtility.generateKey()).thenReturn("ABC");
+        when(encodingUtility.unifiedEncodeBase64(10L, "ABC", 1L)).thenReturn(encode(10, "myfolder", 1));
         when(userSession.getId()).thenReturn(1L);
         when(fileUtility.checkIfFileExistsDecodeNames("user/folder_5", folderName)).thenReturn(false);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
@@ -338,14 +338,15 @@ class FileServiceTest {
         assertNotNull(result);
         assertEquals(encode(10, "myfolder", 1), result.getName());
         assertEquals(1L, result.getUserid());
+        verify(sqLiteDAO).persistObjects(any(FolderMetadata.class));
         verify(sqLiteDAO).saveFolder(any(FolderMetadata.class));
+        assertTrue(Files.exists(parentDir.resolve(encode(10, "myfolder", 1))));
     }
 
     @Test
     void createFolder_WhenDuplicate_ThrowsException() throws Exception {
         String folderName = "existing";
 
-        when(sqLiteDAO.getIdPath(5L, 1L)).thenReturn("0/5");
         when(pathUtility.getFolderPath(5L)).thenReturn("user/folder");
         when(pathUtility.getFullPathToString("user/folder")).thenReturn(tempDir.resolve("user/folder").toString());
         when(pathUtility.isFilenameAllowed(folderName)).thenReturn(true);
@@ -356,7 +357,8 @@ class FileServiceTest {
             return null;
         }).when(sqLiteDAO).persistObjects(any(FolderMetadata.class));
 
-        when(encodingUtility.encodeBase32FolderName(anyLong(), eq(folderName), anyLong())).thenReturn(encode(10, "existing", 1));
+        when(encodingUtility.generateKey()).thenReturn("ABC");
+        when(encodingUtility.unifiedEncodeBase64(10L, "ABC", 1L)).thenReturn(encode(10, "existing", 1));
         when(userSession.getId()).thenReturn(1L);
         when(fileUtility.checkIfFileExistsDecodeNames("user/folder", folderName)).thenReturn(true);
 
@@ -441,12 +443,12 @@ class FileServiceTest {
         MockMultipartFile file = new MockMultipartFile("files", "photo.png", "image/png", "png bytes".getBytes());
         MockMultipartFile[] files = new MockMultipartFile[]{file};
         String encodedFileName = encode(1, "photo.png", 1);
+        String folderPath = Files.createDirectories(tempDir.resolve("user").resolve("folder")).toString();
 
-        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
         when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of());
-        when(pathUtility.isFilenameAllowed("photo.png")).thenReturn(true);
-        when(pathUtility.isFilenameAllowed(encodedFileName)).thenReturn(true);
-        when(encodingUtility.encodeBase32FileName(anyLong(), eq("photo.png"), anyLong())).thenReturn(encodedFileName);
+        when(pathUtility.isFilenameAllowed(anyString())).thenReturn(true);
+        when(encodingUtility.generateKey()).thenReturn("ABC");
+        when(encodingUtility.unifiedEncodeBase64(anyLong(), anyString(), anyLong())).thenReturn(encodedFileName);
         when(userSession.getId()).thenReturn(1L);
         when(pathUtility.getBasePath()).thenReturn(tempDir);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
@@ -459,7 +461,7 @@ class FileServiceTest {
         }).when(sqLiteDAO).persistObjects(any());
         doAnswer(invocation -> invocation.getArgument(0)).when(sqLiteDAO).saveFile(any());
 
-        Map<String, ?> result = fileService.uploadFiles(files, "user/folder", 1L);
+        Map<String, ?> result = fileService.uploadFiles(files, folderPath, 1L);
 
         assertEquals(1, result.get("uploaded_file_count"));
         assertTrue(result.containsKey("created_jobs"));
@@ -474,12 +476,12 @@ class FileServiceTest {
         MockMultipartFile file = new MockMultipartFile("files", "doc.pdf", "application/pdf", "pdf bytes".getBytes());
         MockMultipartFile[] files = new MockMultipartFile[]{file};
         String encodedFileName = encode(1, "doc.pdf", 1);
+        String folderPath = Files.createDirectories(tempDir.resolve("user").resolve("folder")).toString();
 
-        when(pathUtility.getFullPath("user/folder")).thenReturn(tempDir.resolve("user/folder"));
         when(fileUtility.getFileAndFolderPathsFromFolder(any(Path.class))).thenReturn(List.of());
-        when(pathUtility.isFilenameAllowed("doc.pdf")).thenReturn(true);
-        when(pathUtility.isFilenameAllowed(encodedFileName)).thenReturn(true);
-        when(encodingUtility.encodeBase32FileName(anyLong(), eq("doc.pdf"), anyLong())).thenReturn(encodedFileName);
+        when(pathUtility.isFilenameAllowed(anyString())).thenReturn(true);
+        when(encodingUtility.generateKey()).thenReturn("ABC");
+        when(encodingUtility.unifiedEncodeBase64(anyLong(), anyString(), anyLong())).thenReturn(encodedFileName);
         when(userSession.getId()).thenReturn(1L);
         when(pathUtility.getBasePath()).thenReturn(tempDir);
         when(pathUtility.isPathAllowed(any(Path.class))).thenReturn(true);
@@ -492,7 +494,7 @@ class FileServiceTest {
         }).when(sqLiteDAO).persistObjects(any());
         doAnswer(invocation -> invocation.getArgument(0)).when(sqLiteDAO).saveFile(any());
 
-        Map<String, ?> result = fileService.uploadFiles(files, "user/folder", 1L);
+        Map<String, ?> result = fileService.uploadFiles(files, folderPath, 1L);
 
         assertEquals(1, result.get("uploaded_file_count"));
         assertFalse(result.containsKey("created_jobs"));

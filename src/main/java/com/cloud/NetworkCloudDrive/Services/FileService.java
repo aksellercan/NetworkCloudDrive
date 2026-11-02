@@ -63,6 +63,66 @@ public class FileService implements FileRepository {
         List<UploadFileMetadataDTO> uploadedFiles = new ArrayList<>();
         List<JobDTO> createdJobs = new ArrayList<>();
         int savedFileCount = 0;
+        List<Path> filesInside = fileUtility.getFileAndFolderPathsFromFolder(Paths.get(folderPath));
+        // sort by size lowest to highest
+        List<MultipartFile> sortedBySize = Arrays.stream(files).sorted(Comparator.comparingLong(MultipartFile::getSize)).toList();
+        for (MultipartFile file : sortedBySize) {
+            String fileName = file.getOriginalFilename();
+            if (fileName == null) continue;
+            if (!pathUtility.isFilenameAllowed(fileName)) {
+                logger.warn("Invalid filename {}", fileName);
+                continue;
+            }
+            //check for duplicates at destination
+            if (fileUtility.checkDuplicate(filesInside, fileName)) {
+                logger.warn("duplicate {}", fileName);
+                continue;
+            }
+            // Construct file metadata
+            FileMetadata metadata = new FileMetadata(fileName, folderId, userSession.getId(), file.getContentType(), file.getSize());
+            sqLiteDAO.persistObjects(metadata);
+            // Encode in BASE32
+            String key = encodingUtility.generateKey();
+            String encodedFileName = encodingUtility.unifiedEncodeBase64(metadata.getId(), key, userSession.getId());
+            Path storagePath = storeFile(file.getInputStream(), encodedFileName, folderPath).get();
+            logger.debug("storage path {}", storagePath);
+            savedFileCount++;
+            metadata.setName(fileName);
+            metadata.setKey(key);
+            // set parent folder id used for path construction
+            metadata.setParentFolderId(folderId);
+            if (thumbnailProperties.isAllowedImageFormat(file.getContentType())) {
+                ThumbnailJob thumbnailJob = new ThumbnailJob(storagePath, encodedFileName, metadata.getId());
+                sequentialJobExecutor.queueJobs(thumbnailJob);
+                createdJobs.add(new JobDTO(thumbnailJob));
+            }
+            uploadedFiles.add(new UploadFileMetadataDTO(metadata));
+            sqLiteDAO.saveFile(metadata);
+        }
+        if (savedFileCount == 0)
+            throw new FileAlreadyExistsException(
+                    String.format("File%s already exists at destination", (files.length > 1 ? "s" : "")));
+
+        if (!createdJobs.isEmpty()) {
+            return Map
+                    .of(
+                            "uploaded_file_count", savedFileCount,
+                            "files", uploadedFiles,
+                            "created_jobs", createdJobs);
+        }
+
+        return Map
+                .of(
+                        "uploaded_file_count", savedFileCount,
+                        "files", uploadedFiles);
+    }
+
+    @Deprecated
+    @Override
+    public Map<String, ?> uploadFilesOld(MultipartFile[] files, String folderPath, long folderId) throws IOException, ExecutionException, InterruptedException {
+        List<UploadFileMetadataDTO> uploadedFiles = new ArrayList<>();
+        List<JobDTO> createdJobs = new ArrayList<>();
+        int savedFileCount = 0;
         List<Path> filesInside = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(folderPath));
         // sort by size lowest to highest
         List<MultipartFile> sortedBySize = Arrays.stream(files).sorted(Comparator.comparingLong(MultipartFile::getSize)).toList();
@@ -84,10 +144,11 @@ public class FileService implements FileRepository {
             // Encode in BASE32
             String encodedFileName = encodingUtility.encodeBase32FileName(metadata.getId(), fileName, userSession.getId());
             Path storagePath = storeFile(file.getInputStream(), encodedFileName, folderPath).get();
-
             logger.debug("storage path {}", storagePath);
             savedFileCount++;
-            metadata.setName(encodedFileName);
+            metadata.setName(fileName);
+            // set parent folder id used for path construction
+            metadata.setParentFolderId(folderId);
             if (thumbnailProperties.isAllowedImageFormat(file.getContentType())) {
                 ThumbnailJob thumbnailJob = new ThumbnailJob(storagePath, encodedFileName, metadata.getId());
                 sequentialJobExecutor.queueJobs(thumbnailJob);
@@ -116,6 +177,23 @@ public class FileService implements FileRepository {
 
     @Async
     public CompletableFuture<Path> storeFile(InputStream inputStream, String fileName, String parentPath) throws IOException {
+        Path userDirectory = Path.of(parentPath); /* To be extended */
+        if (!pathUtility.isPathAllowed(userDirectory)) {
+            throw new SecurityException("Illegal base path");
+        }
+        Files.createDirectories(userDirectory);
+        Path filePath = userDirectory.resolve(fileName);
+        if (!pathUtility.isPathAllowed(filePath))
+            throw new IOException("Path not allowed");
+        if (!pathUtility.isFilenameAllowed(fileName))
+            throw new IOException("Filename is not allowed");
+        StreamUtils.copy(inputStream, Files.newOutputStream(filePath, StandardOpenOption.CREATE_NEW));
+        return CompletableFuture.completedFuture(pathUtility.getBasePath().relativize(filePath));
+    }
+
+    @Async
+    @Deprecated
+    public CompletableFuture<Path> storeFileOld(InputStream inputStream, String fileName, String parentPath) throws IOException {
         Path userDirectory = pathUtility.getBasePath().resolve(Path.of(parentPath)); /* To be extended */
         Files.createDirectories(userDirectory);
         Path filePath = userDirectory.resolve(fileName);
@@ -130,6 +208,26 @@ public class FileService implements FileRepository {
     @Override
     @Async
     public CompletableFuture<Resource> getFile(FileMetadata file, String path) throws Exception {
+        String fullName = encodingUtility.unifiedEncodeBase64(file);
+        logger.info("passed path {}", path);
+        logger.info("full name {}", fullName);
+        Path filePath = Paths.get(path, fullName);
+        logger.info("file path {}", filePath);
+        Path normalizedRoot = pathUtility.getBasePath().normalize().toAbsolutePath();
+        if (filePath.startsWith(normalizedRoot))
+            throw new SecurityException("Unauthorized access");
+        if (!Files.exists(filePath))
+            throw new IOException("File does not exist");
+        //update last accessed time
+        file.updateLastUpdated();
+        sqLiteDAO.saveFile(file);
+        return CompletableFuture.completedFuture(new UrlResource(filePath.toAbsolutePath().toUri()));
+    }
+
+    @Async
+    @Deprecated
+    @Override
+    public CompletableFuture<Resource> getFileOld(FileMetadata file, String path) throws Exception {
         Path filePath = Paths.get(pathUtility.getFullPathToString(path), file.getName());
         Path normalizedRoot = pathUtility.getBasePath().normalize().toAbsolutePath();
         if (filePath.startsWith(normalizedRoot))
@@ -145,7 +243,6 @@ public class FileService implements FileRepository {
     @Override
     public FolderMetadata createFolder(String folderName, long folderId) throws Exception {
         // Paths
-        String idPath = sqLiteDAO.getIdPath(folderId, userSession.getId());
         String userFolder = pathUtility.getFolderPath(folderId);
         String fullPath = pathUtility.getFullPathToString(userFolder);
         if (!pathUtility.isFilenameAllowed(folderName))
@@ -153,14 +250,13 @@ public class FileService implements FileRepository {
         // Folder metadata
         FolderMetadata createdFolder = new FolderMetadata();
         sqLiteDAO.persistObjects(createdFolder);
-        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
-        // ensure encoded name is also a single path component
-        if (encodedFolderName.contains("/") || encodedFolderName.contains("\\")) {
-            throw new SecurityException("Invalid encoded folder name");
-        }
-        createdFolder.setPath(idPath + "/" + createdFolder.getId());
+        String key = encodingUtility.generateKey();
+        String encodedFolderName = encodingUtility.unifiedEncodeBase64(createdFolder.getId(), key, userSession.getId());
+        //will be primary way to path
+        createdFolder.setParentFolderId(folderId);
         createdFolder.setUserid(userSession.getId());
-        createdFolder.setName(encodedFolderName);
+        createdFolder.setName(folderName);
+        createdFolder.setKey(key);
         // Check if duplicate
         if (fileUtility.checkIfFileExistsDecodeNames(userFolder, folderName))
             throw new FileAlreadyExistsException(String.format("Folder with name %s already exists at this path %s.", folderName, fullPath));
@@ -174,10 +270,50 @@ public class FileService implements FileRepository {
         return sqLiteDAO.saveFolder(createdFolder);
     }
 
+    @Deprecated
+    @Override
+    public FolderMetadata createFolderOld(String folderName, long folderId) throws Exception {
+        // Paths
+        String idPath = sqLiteDAO.getIdPath(folderId, userSession.getId());
+        String userFolder = pathUtility.getFolderPath(folderId);
+        String fullPath = pathUtility.getFullPathToString(userFolder);
+        if (!pathUtility.isFilenameAllowed(folderName))
+            throw new SecurityException("Path is not allowed");
+        // Folder metadata
+        FolderMetadata createdFolder = new FolderMetadata();
+        sqLiteDAO.persistObjects(createdFolder);
+        String encodedFolderName = encodingUtility.encodeBase32FolderName(createdFolder.getId(), folderName, userSession.getId());
+        /*to be removed*/
+        // why does this exist?
+        // ensure encoded name is also a single path component
+        if (encodedFolderName.contains("/") || encodedFolderName.contains("\\")) {
+            throw new SecurityException("Invalid encoded folder name");
+        }
+        /*to be removed*/
+        createdFolder.setPath(idPath + "/" + createdFolder.getId());
+        //will be primary way to path
+        createdFolder.setParentFolderId(folderId);
+        createdFolder.setUserid(userSession.getId());
+        createdFolder.setName(folderName);
+        // Check if duplicate
+        if (fileUtility.checkIfFileExistsDecodeNames(userFolder, folderName))
+            throw new FileAlreadyExistsException(String.format("Folder with name %s already exists at this path %s.", folderName, fullPath));
+        // Create directory
+        Path folder = Paths.get(fullPath, encodedFolderName);
+        if (!pathUtility.isPathAllowed(folder))
+            throw new SecurityException("Path out of bounds");
+        if (Files.notExists(Files.createDirectory(folder)))
+            throw new IOException(String.format("Cannot create directory, with name %s.", folderName));
+        // save and return metadata
+        return sqLiteDAO.saveFolder(createdFolder);
+    }
+
+    //TODO move it to new service
     @Override
     public void markFile(boolean mark, long fileId) throws SQLException {
         FileMetadata fileMetadata = sqLiteDAO.queryFileMetadata(fileId, userSession.getId());
         fileMetadata.setMarked(mark);
+        fileMetadata.updateMarkedAt();
         FileMetadata result = sqLiteDAO.saveFile(fileMetadata);
         logger.info("{}", result.toString());
     }
@@ -186,6 +322,7 @@ public class FileService implements FileRepository {
     public void markFolder(boolean mark, long folderId) throws SQLException {
         FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         folderMetadata.setMarked(mark);
+        folderMetadata.updateMarkedAt();
         FolderMetadata result = sqLiteDAO.saveFolder(folderMetadata);
         logger.info("{}", result.toString());
     }

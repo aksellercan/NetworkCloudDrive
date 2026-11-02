@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 @Service
@@ -63,7 +64,8 @@ public class ThumbnailService implements ThumbnailRepository {
         logger.warn("thumbnail filepath = {}", filePath);
         int[] dimensions = imageUtility.getThumbnailDimensions(filePath);
         boolean isPortrait = imageUtility.isPortrait(dimensions[0], dimensions[1]);
-        Path path = saveThumbnails(createThumbnailOfAnImage(filePath, dimensions[0], dimensions[1]), encodedFileName, "jpg", isPortrait, userDTO);
+        String uuidName = UUID.randomUUID().toString();
+        Path path = saveThumbnails(createThumbnailOfAnImage(filePath, dimensions[0], dimensions[1]), uuidName, "jpg", isPortrait, userDTO);
         ThumbnailMetadata metadata;
         // If entry exists save transaction of creating new entry by creating thumbnail immediately
         if (alreadyExists(fileId, userDTO.getUserId())) {
@@ -117,7 +119,7 @@ public class ThumbnailService implements ThumbnailRepository {
             throw new NullPointerException("Buffered Image is null");
         // if thumbnails folder does not exist
         imageUtility.createThumbnailDirectories(userUtility.returnUserFolderAsPathBackgroundTask(userDTO));
-        Path thumbnailPath = Path.of(imageUtility.getThumbnailPathBackgroundTask(isPortrait, userDTO).toString(), filename + "_thumbnail." + format);
+        Path thumbnailPath = Path.of(imageUtility.getThumbnailPathBackgroundTask(isPortrait, userDTO).toString(), filename + "." + format);
         logger.info("Saving thumbnail to {}", thumbnailPath);
         if (!ImageIO.write(thumbnail, format, thumbnailPath.toFile())) {
             throw new IOException("Failed to write thumbnail to destination");

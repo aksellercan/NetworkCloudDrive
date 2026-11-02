@@ -33,6 +33,10 @@ def increment_version(argument:str, offset:int):
             num:int = int(i)
             num += 1
             result[j] = str(num)
+        if (j > offset):
+            if not (result[j].isdigit()):
+                break;
+            result[j] = str(0) 
         j += 1
     return result
 
