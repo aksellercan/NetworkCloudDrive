@@ -128,7 +128,7 @@ public class FileController {
     @PostMapping(value = "create/folder", version = "2.0")
     public ResponseEntity<?> createFolder(@RequestBody CreateFolderDTO folderDTO) throws Exception {
         FolderMetadata folderMetadata = fileRepository.createFolder(folderDTO.getName(), folderDTO.getFolder_id());
-        folderMetadata.setPath(pathUtility.renovedPathConstructor(folderMetadata.getId()));
+        folderMetadata.setPath(pathUtility.imperativePathResolver(folderMetadata.getId()));
         return ResponseEntity.ok().body(folderMetadata);
     }
 

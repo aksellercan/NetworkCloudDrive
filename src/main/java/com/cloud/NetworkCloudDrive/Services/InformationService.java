@@ -86,7 +86,7 @@ public class InformationService implements InformationRepository {
     public FolderMetadata getFolderMetadata(long folderId) throws IOException {
         FolderMetadata folder = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
         folder.setLastUpdated(Instant.now());
-        File getFolder = fileUtility.returnFileIfItExists(pathUtility.resolvePathFromIdString(folder.getPath()));
+        File getFolder = fileUtility.returnFileIfItExists(pathUtility.getFolderPath(folderId));
         logger.debug("Folder: Id: {} Path: {}", folderId, getFolder);
         return folder;
     }

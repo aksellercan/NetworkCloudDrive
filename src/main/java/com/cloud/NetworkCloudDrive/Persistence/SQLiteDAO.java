@@ -25,6 +25,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -279,7 +280,7 @@ public class SQLiteDAO {
     }
 
     public <T extends ListItem, P extends Metadata> List<T> decodeNamesAndReturnList(List<P> inputList) {
-        List<T> returnList = new ArrayList<>(); //could be LinkedList as well as it won't be modified
+        List<T> returnList = new LinkedList<>();
         for (P listItemDTO : inputList) {
             if (encodingUtility.isBase32Decodable(listItemDTO.getName())) {
                 listItemDTO.setName(encodingUtility.decodedBase32SplitArray(listItemDTO.getName())[1]);

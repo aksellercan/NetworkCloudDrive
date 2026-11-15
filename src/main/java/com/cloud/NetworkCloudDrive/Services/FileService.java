@@ -147,8 +147,6 @@ public class FileService implements FileRepository {
             logger.debug("storage path {}", storagePath);
             savedFileCount++;
             metadata.setName(fileName);
-            // set parent folder id used for path construction
-            metadata.setParentFolderId(folderId);
             if (thumbnailProperties.isAllowedImageFormat(file.getContentType())) {
                 ThumbnailJob thumbnailJob = new ThumbnailJob(storagePath, encodedFileName, metadata.getId());
                 sequentialJobExecutor.queueJobs(thumbnailJob);

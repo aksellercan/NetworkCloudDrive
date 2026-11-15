@@ -19,11 +19,11 @@ public class ListController {
 
     //Replaces old endpoints
     @GetMapping(version = "2.0")
-    public @ResponseBody ResponseEntity<?> listFilesInclusive(
+    public @ResponseBody ResponseEntity<?> listFiles(
             @RequestParam long folder_id,
             @RequestParam(required = false) SortListEnum sort,
             @RequestParam(required = false) FilterListEnum filter,
             @RequestParam(required = false) String filterQuery) throws IOException {
-        return ResponseEntity.ok().body(fileSystemRepository.listFilesV2(folder_id, sort, filter, filterQuery));
+        return ResponseEntity.ok().body(fileSystemRepository.listFiles(folder_id, sort, filter, filterQuery));
     }
 }

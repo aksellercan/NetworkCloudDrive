@@ -60,10 +60,10 @@ public class FileSystemService implements FileSystemRepository {
     }
 
     @Override
-    public Map<String, List<?>> listFilesV2(long folderId, SortListEnum sort, FilterListEnum filter, String filterQuery) throws IOException {
-        List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.getFullPath(pathUtility.getFolderPath(folderId)));
+    public Map<String, List<?>> listFiles(long folderId, SortListEnum sort, FilterListEnum filter, String filterQuery) throws IOException {
+        List<Path> fileList = fileUtility.getFileAndFolderPathsFromFolder(pathUtility.returnFullPath(folderId));
         List<List<?>> results = checkAndCollectFilesAndFolders(fileList);
-        return getStringListMap(sort, filter, filterQuery, results);
+        return listHandler(sort, filter, filterQuery, results);
     }
 
     private List<List<?>> checkAndCollectFilesAndFolders(List<Path> filePaths) {
@@ -137,10 +137,10 @@ public class FileSystemService implements FileSystemRepository {
         List<List<?>> results = new ArrayList<>();
         results.add(sqLiteDAO.listAllMarkedFiles(userSession.getId(), true));
         results.add(sqLiteDAO.listAllMarkedFolders(userSession.getId(), true));
-        return getStringListMap(sort, filter, filterQuery, results);
+        return listHandler(sort, filter, filterQuery, results);
     }
 
-    private Map<String, List<?>> getStringListMap(SortListEnum sort, FilterListEnum filter, String filterQuery, List<List<?>> results) {
+    private Map<String, List<?>> listHandler(SortListEnum sort, FilterListEnum filter, String filterQuery, List<List<?>> results) {
         if (sort != null) {
             return sortAndFilterUtility.sortFileList(
                     sort,

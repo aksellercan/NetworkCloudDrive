@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 
 @Component
+//TODO add a scheduled check for left storage if low it should stop any uploads and respond accordingly
 public class ScheduledTasks {
     private final Logger logger = LoggerFactory.getLogger(ScheduledTasks.class);
 

@@ -14,7 +14,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystemException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -140,11 +142,11 @@ public class PathUtility {
      * @throws FileSystemException if path can't be resolved
      */
     public String getFolderPath(long folderId) throws FileSystemException {
-        return folderId > 0
+        return fileStorageProperties.getFullPath(folderId > 0
                 ?
-                renovedPathConstructor(folderId)
+                imperativePathResolver(folderId)
                 :
-                encodingUtility.encodeBase32UserFolderName(userSession.getId(), userSession.getName(), userSession.getMail());
+                encodingUtility.encodeBase32UserFolderName(userSession.getId(), userSession.getName(), userSession.getMail()));
     }
 
 
@@ -225,29 +227,34 @@ public class PathUtility {
      * @param folderId Folder to start with
      * @return full path as String
      */
-    public String imperativePathConstructor(long folderId) {
-        FolderMetadata folderMetadata = sqLiteDAO.queryFolderMetadata(folderId, userSession.getId());
-        long parentId = folderMetadata.getParentFolderId();
-        StringBuilder fullPath = new StringBuilder();
-        fullPath.append(folderMetadata.getName()).append('.');
-        List<String> folders = new ArrayList<>();
-        while (parentId >= Integer.MIN_VALUE) {
-            if (parentId <= 0) {
-                //use array instead of strinbuilder then flip it
-                try {
-                    fullPath.append(userUtility.returnUserFolder().toString());
-                } catch (IOException e) {
-                    logger.error(e.getMessage());
-                    break;
-                }
+    public String imperativePathResolver(long folderId) {
+        LinkedList<String> path = new LinkedList<>();
+        FolderMetadata currentFolder;
+        long nextId = folderId;
+        do {
+            currentFolder = sqLiteDAO.queryFolderMetadata(nextId, userSession.getId());
+            nextId = currentFolder.getParentFolderId();
+            String encodeFolderName = encodingUtility.unifiedEncodeBase64(currentFolder);
+            path.add(encodeFolderName);
+        } while (nextId > 0);
+        path.add(encodingUtility.encodeBase32UserFolderName(userSession.getId(), userSession.getName(), userSession.getMail()));
+        return batchPaths(path);
+    }
+
+    private String batchPaths(LinkedList<String> paths) {
+        StringBuilder formedPath = new StringBuilder();
+        for (int i = paths.size() - 1; i >= 0; i--) {
+            if (i == 0) {
+                formedPath.append(paths.get(i));
                 break;
             }
-            FolderMetadata parentFolderMetadata = sqLiteDAO.queryFolderMetadata(parentId, userSession.getId());
-            parentId = parentFolderMetadata.getParentFolderId();
-            folders.add(parentFolderMetadata.getName());
-            fullPath.append(parentFolderMetadata.getName()).append(File.separator);
+            formedPath.append(paths.get(i)).append(returnCorrectSeparatorRegex());
         }
-        return fullPath.toString();
+        return Paths.get(formedPath.toString()).toString();
+    }
+
+    public Path returnFullPath(long folderId) {
+        return Path.of(fileStorageProperties.getFullPath(imperativePathResolver(folderId)));
     }
 
     public String renovedPathConstructor(long folderId) {
