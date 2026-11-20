@@ -35,42 +35,42 @@ class ListControllerTest {
     @Test
     void listFilesInclusive_WithoutSortOrFilter_ReturnsOk() throws Exception {
         Map<String, List<?>> expected = Map.of("files", List.of(), "folders", List.of());
-        when(fileSystemRepository.listFilesV2(0L, null, null, null)).thenReturn(expected);
+        when(fileSystemRepository.listFiles(0L, null, null, null)).thenReturn(expected);
 
         ResponseEntity<?> result = controller.listFiles(0L, null, null, null);
 
         assertEquals(200, result.getStatusCode().value());
         assertSame(expected, result.getBody());
-        verify(fileSystemRepository).listFilesV2(0L, null, null, null);
+        verify(fileSystemRepository).listFiles(0L, null, null, null);
     }
 
     @Test
     void listFilesInclusive_WithSort_DelegatesToRepository() throws Exception {
         Map<String, List<?>> expected = Map.of("files", List.of(), "folders", List.of());
-        when(fileSystemRepository.listFilesV2(5L, SortListEnum.ALPHABETICAL, null, null)).thenReturn(expected);
+        when(fileSystemRepository.listFiles(5L, SortListEnum.ALPHABETICAL, null, null)).thenReturn(expected);
 
         ResponseEntity<?> result = controller.listFiles(5L, SortListEnum.ALPHABETICAL, null, null);
 
         assertEquals(200, result.getStatusCode().value());
         assertSame(expected, result.getBody());
-        verify(fileSystemRepository).listFilesV2(5L, SortListEnum.ALPHABETICAL, null, null);
+        verify(fileSystemRepository).listFiles(5L, SortListEnum.ALPHABETICAL, null, null);
     }
 
     @Test
     void listFilesInclusive_WithFilterAndQuery_DelegatesToRepository() throws Exception {
         Map<String, List<?>> expected = Map.of("files", List.of(), "folders", List.of());
-        when(fileSystemRepository.listFilesV2(2L, null, FilterListEnum.KEYWORD, "query")).thenReturn(expected);
+        when(fileSystemRepository.listFiles(2L, null, FilterListEnum.KEYWORD, "query")).thenReturn(expected);
 
         ResponseEntity<?> result = controller.listFiles(2L, null, FilterListEnum.KEYWORD, "query");
 
         assertEquals(200, result.getStatusCode().value());
         assertSame(expected, result.getBody());
-        verify(fileSystemRepository).listFilesV2(2L, null, FilterListEnum.KEYWORD, "query");
+        verify(fileSystemRepository).listFiles(2L, null, FilterListEnum.KEYWORD, "query");
     }
 
     @Test
     void listFilesInclusive_RepositoryError_PropagatesException() throws Exception {
-        when(fileSystemRepository.listFilesV2(0L, null, null, null))
+        when(fileSystemRepository.listFiles(0L, null, null, null))
                 .thenThrow(new java.io.IOException("fs error"));
 
         org.junit.jupiter.api.Assertions.assertThrows(java.io.IOException.class,

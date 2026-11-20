@@ -136,7 +136,6 @@ public class Metadata {
      * Converts Metadata object to List Item object
      *
      * @param object Object to convert
-     * @param <T>    Either FileListItemDTO or FolderListItemDTO object
      * @param <P>    Either FileMetadata or FolderMetadata object
      * @return Either FileListItemDTO or FolderListItemDTO object depending on P object instance, if its neither returns null
      */

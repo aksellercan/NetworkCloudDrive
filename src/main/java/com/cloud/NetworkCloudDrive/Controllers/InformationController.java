@@ -3,8 +3,6 @@ package com.cloud.NetworkCloudDrive.Controllers;
 import com.cloud.NetworkCloudDrive.Models.FileMetadata;
 import com.cloud.NetworkCloudDrive.Models.FolderMetadata;
 import com.cloud.NetworkCloudDrive.Models.Response.JSONErrorResponse;
-import com.cloud.NetworkCloudDrive.Models.Response.JSONResponse;
-import com.cloud.NetworkCloudDrive.Persistence.SQLiteDAO;
 import com.cloud.NetworkCloudDrive.Repositories.InformationRepository;
 import com.cloud.NetworkCloudDrive.Security.EncodingUtility;
 import com.cloud.NetworkCloudDrive.Sessions.UserSession;
@@ -27,18 +25,15 @@ public class InformationController {
     private final EncodingUtility encodingUtility;
     private final UserUtility userUtility;
     private final PathUtility pathUtility;
-    private final SQLiteDAO sqLiteDAO;
 
     public InformationController(
             InformationRepository informationRepository,
             UserSession userSession,
             EncodingUtility encodingUtility,
             UserUtility userUtility,
-            SQLiteDAO sqLiteDAO,
             PathUtility pathUtility) {
         this.informationRepository = informationRepository;
         this.userSession = userSession;
-        this.sqLiteDAO = sqLiteDAO;
         this.encodingUtility = encodingUtility;
         this.userUtility = userUtility;
         this.pathUtility = pathUtility;
@@ -47,8 +42,7 @@ public class InformationController {
     @GetMapping(value = "get/filemetadata", version = "2.0")
     @Cacheable("file_info")
     public @ResponseBody ResponseEntity<?> getFileMetadata(@RequestParam long fileid) throws Exception {
-//        return ResponseEntity.ok().body(new FileMetadata(informationRepository.getFileMetadata(fileid)));
-        return ResponseEntity.ok().body(new JSONResponse(pathUtility.imperativePathResolver(sqLiteDAO.queryFileMetadata(fileid, userSession.getId()).getParentFolderId())));
+        return ResponseEntity.ok().body(new FileMetadata(informationRepository.getFileMetadata(fileid)));
     }
 
 

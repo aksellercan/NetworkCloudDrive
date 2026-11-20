@@ -10,15 +10,34 @@
     </parent>
     <groupId>com.cloud</groupId>
     <artifactId>NetworkCloudDrive</artifactId>
-    <version>0.8.2-SNAPSHOT</version>
+    <version>0.8.3-SNAPSHOT</version>
     <name>NetworkCloudDrive</name>
     <description>NetworkCloudDrive project built with Spring Boot</description>
-    <url/>
+    <url>https://github.com/aksellercan/NetworkCloudDrive</url>
+    <issueManagement>
+        <system>Github Issues</system>
+        <url>https://github.com/aksellercan/NetworkCloudDrive/issues</url>
+    </issueManagement>
     <licenses>
-        <license/>
+        <license>
+            <name>GNU GENERAL PUBLIC LICENSE, Version 3</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.txt</url>
+            <comments>
+                The GNU General Public License is a free, copyleft license for software and other kinds of works.
+            </comments>
+            <distribution>repo</distribution>
+        </license>
     </licenses>
     <developers>
-        <developer/>
+        <developer>
+            <id>aksellercan</id>
+            <name>Aksel Ercan</name>
+            <email>akselercan2003@protonmail.com</email>
+            <roles>
+                <role>developer</role>
+            </roles>
+            <timezone>Europe/Berlin</timezone>
+        </developer>
     </developers>
     <scm>
         <connection/>
